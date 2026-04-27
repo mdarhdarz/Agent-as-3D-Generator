@@ -1,0 +1,43 @@
+<component name="InspectionProjectProfileManager">
+  <profile version="1.0">
+    <option name="myName" value="Project Default" />
+    <inspection_tool class="LanguageDetectionInspection" enabled="false" level="WARNING" enabled_by_default="false" />
+    <inspection_tool class="PyPackageRequirementsInspection" enabled="true" level="WARNING" enabled_by_default="true">
+      <option name="ignoredPackages">
+        <value>
+          <list size="21">
+            <item index="0" class="java.lang.String" itemvalue="xatlas" />
+            <item index="1" class="java.lang.String" itemvalue="torch-ema" />
+            <item index="2" class="java.lang.String" itemvalue="nvdiffrast" />
+            <item index="3" class="java.lang.String" itemvalue="carvekit-colab" />
+            <item index="4" class="java.lang.String" itemvalue="diffusers" />
+            <item index="5" class="java.lang.String" itemvalue="scikit-learn" />
+            <item index="6" class="java.lang.String" itemvalue="opencv-python" />
+            <item index="7" class="java.lang.String" itemvalue="PyMCubes" />
+            <item index="8" class="java.lang.String" itemvalue="rich" />
+            <item index="9" class="java.lang.String" itemvalue="trimesh" />
+            <item index="10" class="java.lang.String" itemvalue="CLIP" />
+            <item index="11" class="java.lang.String" itemvalue="kornia" />
+            <item index="12" class="java.lang.String" itemvalue="pytorch-lightning" />
+            <item index="13" class="java.lang.String" itemvalue="tensorboard" />
+            <item index="14" class="java.lang.String" itemvalue="pymeshlab" />
+            <item index="15" class="java.lang.String" itemvalue="ninja" />
+            <item index="16" class="java.lang.String" itemvalue="taming-transformers-rom1504" />
+            <item index="17" class="java.lang.String" itemvalue="tensorboardX" />
+            <item index="18" class="java.lang.String" itemvalue="open3d" />
+            <item index="19" class="java.lang.String" itemvalue="imageio-ffmpeg" />
+            <item index="20" class="java.lang.String" itemvalue="accelerate" />
+          </list>
+        </value>
+      </option>
+    </inspection_tool>
+    <inspection_tool class="PyUnresolvedReferencesInspection" enabled="true" level="WARNING" enabled_by_default="true">
+      <option name="ignoredIdentifiers">
+        <list>
+          <option value="guidance.zero123_utils.zeronvs_diffusion" />
+        </list>
+      </option>
+    </inspection_tool>
+    <inspection_tool class="ReassignedToPlainText" enabled="true" level="INFORMATION" enabled_by_default="true" />
+  </profile>
+</component>

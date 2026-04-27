@@ -1,0 +1,4 @@
+interface:
+  display_name: "Infinigen Reference Reconstruction"
+  short_description: "Rebuild scenes with Blender MCP and Infinigen"
+  default_prompt: "Use this skill to rebuild a scene from reference images by combining Blender MCP scene iteration with Infinigen native asset study, patching, and ongoing progress logging."
