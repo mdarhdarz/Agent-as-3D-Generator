@@ -145,20 +145,20 @@ Keep this skill generic. Do not store project-specific dates, file paths, progre
 ## Current-Blend Factory Invocation Pattern
 
 - Prefer direct Blender MCP factory calls when replacing assets in the active `.blend`: configure the Blender process import path, reload the target factory module, create the asset in-place, move it into the target collection, then archive the old blockout.
-- Remember that the active Blender process may use a different Python executable than the repo's system-level validation command. Before importing Infinigen inside MCP, put any repo-local compatibility shims first, the repo root second, and the validated third-party `site-packages` path after that.
+- Remember that the active Blender process may use a different Python executable than the repo's system-level validation command. Before importing Infinigen inside MCP, put the repo root before the validated third-party `site-packages` path.
 - Do not paper over missing dependencies by injecting no-op modules such as fake `gin` or `tqdm`. If that happened during debugging, remove those modules from `sys.modules`; if Infinigen was imported while they were present, also purge `infinigen` and `infinigen.*` before a clean import.
 - When the live Blender import state is suspect, use `references/blender-mcp-infinigen-runtime-reset.md` before retrying factory creation.
 - After direct factory creation, validate the generated object just like an appended asset: bbox, polycount, ground/support contact, collection membership, old-object archive state, neighboring subsystem gaps, active camera, and viewport screenshot.
 
 ## Environment Compatibility Pattern
 
-- On this Windows workstation, read the local compatibility handoff before running or debugging Infinigen system pipelines, direct Blender MCP factory imports, or Blender/Python/NumPy compatibility work. The source of truth is `infinigen/docs/WindowsBpy5CompatibilityStatus.md` from the workspace root; if the current working directory is already the Infinigen repo, read `docs/WindowsBpy5CompatibilityStatus.md`.
-- Treat that status document as the current local command and environment reference for Python 3.13, NumPy 2.x, Blender/bpy 5.x, the `cv2` shim, known-good `generate_indoors` / `generate_nature` smoke commands, and current blockers. Do not reconstruct this information from memory when the file is available.
+- If the project has a compatibility handoff such as `infinigen/docs/WindowsBpy5CompatibilityStatus.md`, read it before running or debugging Infinigen system pipelines, direct Blender MCP factory imports, or Blender/Python dependency work.
+- Treat that document as the project-local reference for exact commands, runtime versions, known-good smoke outputs, and current blockers. Do not duplicate those details inside this skill.
 - Treat system-level Infinigen commands, Blender MCP execution, and standalone Python probes as separate runtimes until verified. Record which Python executable, `bpy` version, NumPy version, and dependency paths each one is using.
-- When a repo has local compatibility shims, put the shim directory before the repo root and third-party `site-packages` in the active process import path. For NumPy 2.x/OpenCV issues, verify `cv2.__file__` points at the intended shim before running a long task.
+- Put the Infinigen repo root before the validated third-party `site-packages` in the active process import path.
 - Prefer real installed dependencies such as `gin`, `tqdm`, and `trimesh`. Temporary fake modules can make imports appear successful while corrupting later factory behavior.
-- If an import path or shim order was wrong, clean the live process before retrying: remove the affected dependency modules from `sys.modules`; if Infinigen was already imported, also remove `infinigen` and `infinigen.*`.
-- Keep detailed environment notes in the project compatibility document rather than duplicating exact local paths and smoke-test status inside this skill. Use the skill for reusable workflow and the compatibility document for exact local commands and known-good outputs.
+- If an import path was wrong, clean the live process before retrying: remove the affected dependency modules from `sys.modules`; if Infinigen was already imported, also remove `infinigen` and `infinigen.*`.
+- Use this skill for reusable workflow and the compatibility handoff for exact local commands and environment status.
 
 ## Blender MCP Review Pattern
 

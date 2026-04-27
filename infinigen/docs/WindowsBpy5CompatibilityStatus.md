@@ -1,6 +1,6 @@
 # Windows + Blender 5 Compatibility Status
 
-Status snapshot as of April 24, 2026. System smoke-test results from April 20 remain the current known-good references unless noted otherwise.
+Status snapshot as of April 27, 2026. System smoke-test results from April 20 remain the current known-good scene-pipeline references unless noted otherwise. A native OpenCV smoke test was added on April 27 after reinstalling `cv2`.
 
 This document records the current local environment, the exact commands used to exercise the system-level pipelines, and the current validation status for:
 
@@ -17,17 +17,15 @@ It is intended as a working handoff note for continued compatibility work on Ble
 - Python version: 3.13
 - NumPy version: 2.4.4
 - Blender Python (`bpy`) version: 5.1.1
-- `cv2`: local shim available and in use for NumPy 2.x compatibility
+- `cv2`: native OpenCV wheel available and tested in the current Python / NumPy environment
 
 Notes:
 
 - The current repo metadata still targets `python==3.11.*`, `numpy<2`, and `bpy==4.2.0`, but the validation below was performed against the local environment above.
 - System-level commands run under `D:\Python313\python.exe`, while Blender MCP executes inside the currently open Blender process using Blender's bundled Python. These are not automatically the same import environment.
 - For live MCP edits that directly call Infinigen factories in the current `.blend`, configure the Blender process `sys.path` before import:
-  - first: `D:\MyFiles\General_Agent_Workspace\scene_generation\infinigen\__codex_shims__`
-  - second: `D:\MyFiles\General_Agent_Workspace\scene_generation\infinigen`
-  - third: `D:\Python313\Lib\site-packages`
-- Keep the `cv2` shim ahead of site-packages. Without this priority, Python may import the native OpenCV wheel, which is incompatible with NumPy 2.4.4 in this environment.
+  - first: `D:\MyFiles\General_Agent_Workspace\scene_generation\infinigen`
+  - second: `D:\Python313\Lib\site-packages`
 - Blender 5.1 emits several non-fatal warnings in this environment:
   - extension cache / lock permission errors under `%APPDATA%\Blender Foundation\Blender\5.1`
   - optional addon install warnings for `real_snow`
@@ -45,7 +43,7 @@ For reference-scene reconstruction, single-asset `.blend` generation is useful f
 4. Spawn/create the asset directly in the active scene.
 5. Move it into the target collection, archive the old blockout, place it relationally, run bbox/visibility audits, restore the photo-match camera, and save.
 
-If temporary no-op shims such as fake `gin` or `tqdm` were injected during debugging, remove them from `sys.modules` before retrying with the real dependency environment. If Infinigen was imported while those fake modules were present, also purge `infinigen` and `infinigen.*` from `sys.modules` before a clean import.
+If temporary fake modules such as fake `gin` or `tqdm` were injected during debugging, remove them from `sys.modules` before retrying with the real dependency environment. If Infinigen was imported while those fake modules were present, also purge `infinigen` and `infinigen.*` from `sys.modules` before a clean import.
 
 Minimal MCP-side setup snippet:
 
@@ -53,16 +51,48 @@ Minimal MCP-side setup snippet:
 import sys
 
 repo_root = r"D:\MyFiles\General_Agent_Workspace\scene_generation\infinigen"
-shim_path = repo_root + r"\__codex_shims__"
 py313_site = r"D:\Python313\Lib\site-packages"
 
-for path in [py313_site, repo_root, shim_path]:
+for path in [py313_site, repo_root]:
     while path in sys.path:
         sys.path.remove(path)
-sys.path.insert(0, shim_path)
-sys.path.insert(1, repo_root)
-sys.path.insert(2, py313_site)
+sys.path.insert(0, repo_root)
+sys.path.insert(1, py313_site)
 ```
+
+### Native `cv2` / Individual Asset Smoke
+
+Native `cv2` import check:
+
+```powershell
+python -c "import numpy, cv2; print(numpy.__version__); print(cv2.__version__); print(cv2.__file__)"
+```
+
+April 27, 2026 result:
+
+- NumPy: `2.4.4`
+- OpenCV: `4.13.0`
+- `cv2.__file__`: `D:\Python313\Lib\site-packages\cv2\__init__.py`
+
+Single-asset generation smoke:
+
+```powershell
+python -m infinigen_examples.generate_individual_assets -o outputs/system_smoke/individual_assets/cv2_native_plate_20260427 -f infinigen.assets.objects.tableware.PlateFactory -n 1 -D 0 -r none -s
+```
+
+Result: passed.
+
+Important outputs:
+
+- `outputs/system_smoke/individual_assets/cv2_native_plate_20260427/infinigen.assets.objects.tableware.PlateFactory_000/scene.blend`
+- `outputs/system_smoke/individual_assets/cv2_native_plate_20260427/infinigen.assets.objects.tableware.PlateFactory_000/polycounts.txt`
+- `outputs/system_smoke/individual_assets/cv2_native_plate_20260427/infinigen.assets.objects.tableware.PlateFactory_000/MaskTag.json`
+
+Observed non-fatal Blender warnings remain consistent with the previous environment notes:
+
+- extension cache permission warning under `%APPDATA%\Blender Foundation\Blender\5.1`
+- HIP initialization warning on this machine
+- `scene.blend@` backup-file warning while saving
 
 ### Indoors
 
@@ -114,6 +144,16 @@ python -m infinigen_examples.generate_nature --seed 0 --task mesh_save --input_f
 ```
 
 ## Test Progress
+
+### Native `cv2` single-asset smoke
+
+Result: passed on April 27, 2026.
+
+Confirmed:
+
+- `cv2` imports from `D:\Python313\Lib\site-packages\cv2\__init__.py`
+- OpenCV version is `4.13.0`
+- `infinigen_examples.generate_individual_assets` can create and save a `PlateFactory` `.blend`
 
 ### `generate_indoors`
 
@@ -224,11 +264,10 @@ Render follow-up observations:
 
 This confirms that, aside from the terrain native-library path and the current memory-heavy render path, a large portion of the nature system chain now runs under Blender 5.1 in the local environment.
 
-## Compatibility Fixes Applied During Validation
+## Compatibility Fixes Applied During Earlier Validation
 
-The following compatibility fixes were added while bringing the pipelines forward:
+The following compatibility fixes were added while bringing the pipelines forward before the April 27 native `cv2` reinstall:
 
-- Auto-enable local `cv2` shim when running under NumPy 2.x.
 - Convert NumPy boolean scalars to plain Python `bool` before writing Blender RNA selection properties.
 - Make UV read/write resilient when `uv_layers.active is None`.
 - Add fallback handling for edge-loop selection operators across Blender versions.
@@ -240,7 +279,7 @@ The following compatibility fixes were added while bringing the pipelines forwar
 
 ## Files Touched
 
-Key files updated during this round include:
+Key files updated during the earlier Blender 5 compatibility round include:
 
 - `infinigen/__init__.py`
 - `infinigen/assets/utils/decorate.py`
@@ -318,14 +357,15 @@ Verify the local Python / Blender environment:
 python -c "import bpy, numpy; print(bpy.app.version_string); print(numpy.__version__)"
 ```
 
-Verify that the `cv2` shim is active:
+Verify that native `cv2` is active:
 
-```bash
-python -c "import infinigen, cv2; print(cv2.__file__)"
+```powershell
+python -c "import cv2; print(cv2.__version__); print(cv2.__file__)"
 ```
 
 Expected behavior in this environment:
 
 - `bpy.app.version_string` reports `5.1.1`
 - `numpy.__version__` reports `2.4.4`
-- `cv2.__file__` points to the repo-local shim under `__codex_shims__`
+- `cv2.__version__` reports `4.13.0`
+- `cv2.__file__` points to `D:\Python313\Lib\site-packages\cv2\__init__.py`

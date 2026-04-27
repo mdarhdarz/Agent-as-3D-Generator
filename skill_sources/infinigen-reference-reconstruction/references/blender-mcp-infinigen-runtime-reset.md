@@ -16,11 +16,10 @@ Record which runtime produced each result when debugging import or compatibility
 
 Before importing Infinigen inside Blender MCP, put paths in this order:
 
-1. repo-local compatibility shims, when present
-2. Infinigen repo root
-3. validated third-party `site-packages`
+1. Infinigen repo root
+2. validated third-party `site-packages`
 
-Read the workspace compatibility document for exact local paths instead of reconstructing them from memory.
+If available, read the project compatibility handoff for exact local paths instead of reconstructing them from memory.
 
 ## Clean Reload Pattern
 
