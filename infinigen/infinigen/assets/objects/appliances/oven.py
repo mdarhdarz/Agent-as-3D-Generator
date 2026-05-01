@@ -188,6 +188,9 @@ class OvenFactory(AssetFactory):
             self.params["MiddleRatio"],
         )
         grates.data.materials.append(self.geometry_node_params["WhiteMetal"])
+        for slot in grates.material_slots:
+            if slot.material is None:
+                slot.material = self.geometry_node_params["WhiteMetal"]
         obj.data.materials.append(self.geometry_node_params["Back"])
         with butil.SelectObjects(obj):
             obj.active_material_index = len(obj.material_slots) - 1
@@ -216,8 +219,12 @@ class OvenFactory(AssetFactory):
             bpy.context.object.modifiers["Boolean"].object = hollow
             bpy.context.object.modifiers["Boolean"].use_hole_tolerant = True
             bpy.ops.object.modifier_apply(modifier="Boolean")
+        for slot in obj.material_slots:
+            if slot.material is None:
+                slot.material = self.geometry_node_params["Back"]
         butil.delete(hollow)
-        butil.join_objects([obj, grates], check_attributes=True)
+        obj = butil.join_objects([obj, grates], check_attributes=True)
+        butil.purge_empty_materials(obj)
 
         return obj
 

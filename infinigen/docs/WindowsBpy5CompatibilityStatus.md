@@ -1,13 +1,19 @@
 # Windows + Blender 5 Compatibility Status
 
-Status snapshot as of April 27, 2026. System smoke-test results from April 20 remain the current known-good scene-pipeline references unless noted otherwise. A native OpenCV smoke test was added on April 27 after reinstalling `cv2`.
+Status snapshot: May 1, 2026.
 
-This document records the current local environment, the exact commands used to exercise the system-level pipelines, and the current validation status for:
+This document is a practical handoff for running Infinigen locally on native Windows with Python 3.13, Blender Python (`bpy`) 5.1, NumPy 2.x, and native OpenCV. It records what currently works, what is still blocked, and where the latest smoke-test outputs live.
 
-- `infinigen_examples.generate_indoors`
-- `infinigen_examples.generate_nature`
+## Current Summary
 
-It is intended as a working handoff note for continued compatibility work on Blender 5 / Python 3.13.
+- Native `cv2` imports successfully.
+- `bpy` imports successfully from the local Python environment.
+- Indoor scene generation has a known-good coarse reference.
+- Nature generation works on the no-terrain path through coarse, populate, fine-terrain no-op handoff, and mesh-save.
+- Full terrain generation is still blocked on native terrain shared libraries on Windows.
+- Rendering the populated no-terrain nature scene is still blocked by memory pressure in Cycles / OPTIX.
+- The May 1 all-asset smoke baseline covered 301 curated assets and saved `.blend` files without rendering.
+- After follow-up fixes, the 4 original indoor mesh failures now pass isolated rechecks.
 
 ## Local Environment
 
@@ -17,35 +23,39 @@ It is intended as a working handoff note for continued compatibility work on Ble
 - Python version: 3.13
 - NumPy version: 2.4.4
 - Blender Python (`bpy`) version: 5.1.1
-- `cv2`: native OpenCV wheel available and tested in the current Python / NumPy environment
+- OpenCV (`cv2`) version: 4.13.0
 
-Notes:
+The repo metadata still targets older package versions such as `python==3.11.*`, `numpy<2`, and `bpy==4.2.0`. The results below are for the local environment listed above, not the original upstream target environment.
 
-- The current repo metadata still targets `python==3.11.*`, `numpy<2`, and `bpy==4.2.0`, but the validation below was performed against the local environment above.
-- System-level commands run under `D:\Python313\python.exe`, while Blender MCP executes inside the currently open Blender process using Blender's bundled Python. These are not automatically the same import environment.
-- For live MCP edits that directly call Infinigen factories in the current `.blend`, configure the Blender process `sys.path` before import:
-  - first: `D:\MyFiles\General_Agent_Workspace\scene_generation\infinigen`
-  - second: `D:\Python313\Lib\site-packages`
-- Blender 5.1 emits several non-fatal warnings in this environment:
-  - extension cache / lock permission errors under `%APPDATA%\Blender Foundation\Blender\5.1`
-  - optional addon install warnings for `real_snow`
-  - `scene.blend@` backup-file warnings when saving large scenes
+Quick environment check:
 
-## Command Patterns
+```powershell
+python -c "import bpy, numpy, cv2; print('bpy', bpy.app.version_string); print('numpy', numpy.__version__); print('cv2', cv2.__version__)"
+```
 
-### Blender MCP Direct Factory Calls
+Expected current output:
 
-For reference-scene reconstruction, single-asset `.blend` generation is useful for isolated validation, but it is not required for inserting assets into the active reconstruction scene. The preferred live workflow is:
+```text
+bpy 5.1.1
+numpy 2.4.4
+cv2 4.13.0
+```
 
-1. Use Blender MCP `execute_blender_code` inside the current `.blend`.
-2. Configure import paths in the Blender process as described above.
-3. Import or reload the target Infinigen factory.
-4. Spawn/create the asset directly in the active scene.
-5. Move it into the target collection, archive the old blockout, place it relationally, run bbox/visibility audits, restore the photo-match camera, and save.
+## Non-Fatal Local Warnings
 
-If temporary fake modules such as fake `gin` or `tqdm` were injected during debugging, remove them from `sys.modules` before retrying with the real dependency environment. If Infinigen was imported while those fake modules were present, also purge `infinigen` and `infinigen.*` from `sys.modules` before a clean import.
+These warnings are expected in this local setup and do not by themselves mean a smoke test failed:
 
-Minimal MCP-side setup snippet:
+- Blender extension cache permission warnings under `%APPDATA%\Blender Foundation\Blender\5.1`
+- optional addon warnings for `real_snow`
+- HIP / GPU backend initialization warnings on this machine
+- `scene.blend@` save warnings from Blender 5.1
+- `Unable to remove directory` after short `bpy` runs
+
+## Blender MCP Notes
+
+Blender MCP runs inside the currently open Blender process. That process is not guaranteed to have the same import paths as `D:\Python313\python.exe`.
+
+For live MCP edits that directly call Infinigen factories, set the Blender process import path before importing Infinigen:
 
 ```python
 import sys
@@ -60,312 +70,198 @@ sys.path.insert(0, repo_root)
 sys.path.insert(1, py313_site)
 ```
 
-### Native `cv2` / Individual Asset Smoke
+If temporary fake modules were injected during debugging, remove them from `sys.modules` before retrying. If Infinigen was imported while those fake modules were present, also purge `infinigen` and `infinigen.*` from `sys.modules` before a clean import.
 
-Native `cv2` import check:
-
-```powershell
-python -c "import numpy, cv2; print(numpy.__version__); print(cv2.__version__); print(cv2.__file__)"
-```
-
-April 27, 2026 result:
-
-- NumPy: `2.4.4`
-- OpenCV: `4.13.0`
-- `cv2.__file__`: `D:\Python313\Lib\site-packages\cv2\__init__.py`
-
-Single-asset generation smoke:
-
-```powershell
-python -m infinigen_examples.generate_individual_assets -o outputs/system_smoke/individual_assets/cv2_native_plate_20260427 -f infinigen.assets.objects.tableware.PlateFactory -n 1 -D 0 -r none -s
-```
-
-Result: passed.
-
-Important outputs:
-
-- `outputs/system_smoke/individual_assets/cv2_native_plate_20260427/infinigen.assets.objects.tableware.PlateFactory_000/scene.blend`
-- `outputs/system_smoke/individual_assets/cv2_native_plate_20260427/infinigen.assets.objects.tableware.PlateFactory_000/polycounts.txt`
-- `outputs/system_smoke/individual_assets/cv2_native_plate_20260427/infinigen.assets.objects.tableware.PlateFactory_000/MaskTag.json`
-
-Observed non-fatal Blender warnings remain consistent with the previous environment notes:
-
-- extension cache permission warning under `%APPDATA%\Blender Foundation\Blender\5.1`
-- HIP initialization warning on this machine
-- `scene.blend@` backup-file warning while saving
+## Scene Pipeline Smoke Status
 
 ### Indoors
 
-Validated coarse command:
+Known-good coarse command:
 
-```bash
+```powershell
 python -m infinigen_examples.generate_indoors --seed 0 --task coarse --output_folder outputs/system_smoke/indoors/coarse_live11 -g fast_solve.gin singleroom.gin -p compose_indoors.terrain_enabled=False -p compose_indoors.restrict_single_supported_roomtype=True
 ```
 
-This uses:
-
-- `fast_solve.gin` to shorten solver runtime
-- `singleroom.gin` to keep the case small and deterministic
-- `compose_indoors.terrain_enabled=False` to avoid background terrain
-- `compose_indoors.restrict_single_supported_roomtype=True` to constrain room selection
-
-### Nature
-
-Full terrain command attempted:
-
-```bash
-python -m infinigen_examples.generate_nature --seed 0 --task coarse -g desert.gin simple.gin --output_folder outputs/system_smoke/nature/coarse_live2
-```
-
-Nature smoke command without terrain:
-
-```bash
-python -m infinigen_examples.generate_nature --seed 0 --task coarse -g desert.gin simple.gin --output_folder outputs/system_smoke/nature/coarse_no_terrain4 -p compose_nature.terrain_enabled=False
-```
-
-The no-terrain command exercises most of the Python / asset / camera / lighting path while bypassing the terrain shared-library dependency.
-
-Follow-on populate smoke from the successful no-terrain coarse output:
-
-```bash
-python -m infinigen_examples.generate_nature --seed 0 --task populate --input_folder outputs/system_smoke/nature/coarse_no_terrain4 --output_folder outputs/system_smoke/nature/populate_no_terrain3 -g desert.gin simple.gin -p compose_nature.terrain_enabled=False populate_scene.populate_bushes_enabled=False
-```
-
-No-terrain fine-terrain handoff check:
-
-```bash
-python -m infinigen_examples.generate_nature --seed 0 --task fine_terrain --input_folder outputs/system_smoke/nature/populate_no_terrain3 --output_folder outputs/system_smoke/nature/fine_terrain_no_terrain1 -g desert.gin simple.gin -p compose_nature.terrain_enabled=False populate_scene.populate_bushes_enabled=False
-```
-
-No-terrain mesh export smoke after populate:
-
-```bash
-python -m infinigen_examples.generate_nature --seed 0 --task mesh_save --input_folder outputs/system_smoke/nature/populate_no_terrain3 --output_folder outputs/system_smoke/nature/mesh_save_no_terrain1 -g desert.gin simple.gin -p compose_nature.terrain_enabled=False populate_scene.populate_bushes_enabled=False
-```
-
-## Test Progress
-
-### Native `cv2` single-asset smoke
-
-Result: passed on April 27, 2026.
-
-Confirmed:
-
-- `cv2` imports from `D:\Python313\Lib\site-packages\cv2\__init__.py`
-- OpenCV version is `4.13.0`
-- `infinigen_examples.generate_individual_assets` can create and save a `PlateFactory` `.blend`
-
-### `generate_indoors`
-
 Result: passed.
 
-Output folder:
-
-- `outputs/system_smoke/indoors/coarse_live11`
-
-Important outputs:
+Reference output:
 
 - `outputs/system_smoke/indoors/coarse_live11/scene.blend`
 - `outputs/system_smoke/indoors/coarse_live11/solve_state.json`
 - `outputs/system_smoke/indoors/coarse_live11/optim_records.csv`
 
-Observed successful stage flow:
+### Nature With Full Terrain
 
-- `solve_rooms`
-- `solve_large`
-- `solve_medium`
-- `solve_small`
-- `populate_assets`
-- `room_doors`
-- `room_windows`
-- `room_stairs`
-- `skirting_floor`
-- `room_walls`
-- `room_floors`
-- `room_ceilings`
-- blend save
+Attempted command:
 
-### `generate_nature` with full terrain
+```powershell
+python -m infinigen_examples.generate_nature --seed 0 --task coarse -g desert.gin simple.gin --output_folder outputs/system_smoke/nature/coarse_live2
+```
 
-Result: blocked on native terrain libraries.
+Result: blocked.
 
-Observed failure:
+Observed blocker:
 
 - `FileNotFoundError` for `infinigen/terrain/lib/cpu/elements/waterbody.so`
 
 Current conclusion:
 
-- This is not primarily a Blender 5 API issue.
-- It is a platform / build-artifact issue in the current native Windows environment.
+- This is a native Windows terrain-build artifact issue, not the main Blender 5 API blocker.
+- `docs/Installation.md` marks `Terrain (CPU)` as unsupported for native `Windows x86_64`.
+- `scripts/install/compile_terrain.sh` is a Unix shell build path that produces `.so` artifacts.
 
-Supporting repo evidence:
+### Nature Without Terrain
 
-- `docs/Installation.md` marks `Terrain (CPU)` as `no` for `Windows x86_64`.
-- `scripts/install/compile_terrain.sh` is a Unix shell build script that outputs `.so` terrain libraries.
-- The local workspace does not currently contain `infinigen/terrain/lib/cpu/...` artifacts.
+Coarse no-terrain command:
 
-### `generate_nature` without terrain
+```powershell
+python -m infinigen_examples.generate_nature --seed 0 --task coarse -g desert.gin simple.gin --output_folder outputs/system_smoke/nature/coarse_no_terrain4 -p compose_nature.terrain_enabled=False
+```
 
-Result: `coarse` passed, `populate` partially passed with a targeted stage disable, `fine_terrain` safely no-op'ed, `mesh_save` passed, `render` blocked by memory / Cycles backend limits.
+Populate no-terrain command:
 
-Output folder:
+```powershell
+python -m infinigen_examples.generate_nature --seed 0 --task populate --input_folder outputs/system_smoke/nature/coarse_no_terrain4 --output_folder outputs/system_smoke/nature/populate_no_terrain3 -g desert.gin simple.gin -p compose_nature.terrain_enabled=False populate_scene.populate_bushes_enabled=False
+```
 
-- `outputs/system_smoke/nature/coarse_no_terrain4`
-- `outputs/system_smoke/nature/populate_no_terrain3`
-- `outputs/system_smoke/nature/fine_terrain_no_terrain1`
-- `outputs/system_smoke/nature/mesh_save_no_terrain1`
+Fine-terrain no-terrain handoff command:
 
-Important outputs:
+```powershell
+python -m infinigen_examples.generate_nature --seed 0 --task fine_terrain --input_folder outputs/system_smoke/nature/populate_no_terrain3 --output_folder outputs/system_smoke/nature/fine_terrain_no_terrain1 -g desert.gin simple.gin -p compose_nature.terrain_enabled=False populate_scene.populate_bushes_enabled=False
+```
+
+Mesh-save command:
+
+```powershell
+python -m infinigen_examples.generate_nature --seed 0 --task mesh_save --input_folder outputs/system_smoke/nature/populate_no_terrain3 --output_folder outputs/system_smoke/nature/mesh_save_no_terrain1 -g desert.gin simple.gin -p compose_nature.terrain_enabled=False populate_scene.populate_bushes_enabled=False
+```
+
+Result: passed through coarse, targeted populate, fine-terrain no-op handoff, and mesh-save.
+
+Reference outputs:
 
 - `outputs/system_smoke/nature/coarse_no_terrain4/scene.blend`
-- `outputs/system_smoke/nature/coarse_no_terrain4/pipeline_coarse.csv`
 - `outputs/system_smoke/nature/populate_no_terrain3/scene.blend`
-- `outputs/system_smoke/nature/populate_no_terrain3/pipeline_fine.csv`
+- `outputs/system_smoke/nature/fine_terrain_no_terrain1/scene.blend`
 - `outputs/system_smoke/nature/mesh_save_no_terrain1/frame_0001/mesh/saved_mesh_0001.npz`
 
-Observed successful progress:
+Render follow-up:
 
-- terrain stage skipped through `compose_nature.terrain_enabled=False`
-- fallback `noise_plane` path used
-- bushes
-- cactus
-- camera preprocessing
-- camera pose search
-- lighting
-- coarse terrain frustum split on fallback mesh
-- rocks
-- ground twigs
-- leaf particles
-- blend save
+- GPU render from `populate_no_terrain3` failed on April 20, 2026 with `OPTIX_ERROR_INTERNAL_COMPILER_ERROR` followed by GPU out-of-memory.
+- CPU-only render also failed on April 20, 2026 with Cycles out-of-memory after reducing samples and saved passes.
+- Current render blocker is scene memory pressure, not a Python import or driver exception.
 
-Populate follow-up observations:
+## All-Asset Smoke Test
 
-- `populate_no_terrain1`: failed in `populate_bushes` with allocator null / out-of-memory during bush asset realization
-- `populate_no_terrain2`: lowering `placement.populate_all.dist_cull=20` reduced bush count but still failed in a second `BushFactory`
-- `populate_no_terrain3`: succeeded with `populate_scene.populate_bushes_enabled=False`
-- successful populated stages in `populate_no_terrain3` included `populate_cactus`, `populate_clouds`, `populate_glowing_rocks`, all cached-fire populate no-ops, creature populate no-ops, and final blend save
+Run date: May 1, 2026.
 
-Fine-terrain follow-up observations:
+Output root:
 
-- `fine_terrain_no_terrain1` completed successfully
-- because the no-terrain scene does not contain terrain atmosphere objects, `fine_terrain` was effectively skipped and the input scene was re-saved without touching native terrain code
+- `outputs/system_smoke/all_assets_20260501/full_blends_realtime`
 
-Mesh-save follow-up observations:
+This run exercised the curated asset lists, saved `.blend` files, and did not render.
 
-- `mesh_save_no_terrain1` completed successfully
-- produced static mesh plus per-frame mesh packs under `frame_0001` and `frame_0002`
-- exporter handled very large tree assets by chunking into multiple `saved_mesh_XXXX.npz` files
+Baseline result from `final_status_from_status_json.csv`:
 
-Render follow-up observations:
+| Group | Total | Pass | Fail |
+| --- | ---: | ---: | ---: |
+| indoor_meshes | 91 | 87 | 4 |
+| nature_meshes | 82 | 67 | 15 |
+| materials | 51 | 51 | 0 |
+| materials_deprecated | 55 | 54 | 1 |
+| scatters | 22 | 18 | 4 |
+| total | 301 | 277 | 24 |
 
-- GPU render attempt from `populate_no_terrain3` failed on April 20, 2026 with `OPTIX_ERROR_INTERNAL_COMPILER_ERROR` followed by GPU out-of-memory
-- CPU-only render attempt also failed on April 20, 2026 with Cycles out-of-memory, even after reducing samples and disabling saved passes
-- current render blocker is scene memory pressure in Cycles rather than a Python exception in the Infinigen render driver
+Baseline failure list:
 
-This confirms that, aside from the terrain native-library path and the current memory-heavy render path, a large portion of the nature system chain now runs under Blender 5.1 in the local environment.
+- indoor: `OvenFactory`, `AquariumTankFactory`, `SinkFactory`, `WallShelfFactory`
+- nature meshes: `StarCoralFactory`, `TubeCoralFactory`, `BeetleFactory`, `CarnivoreFactory`, `FishFactory`, `FruitFactoryCoconutgreen`, `LeafFactoryBroadleaf`, `LeafFactoryMaple`, `LeafFactoryPine`, `DustMoteFactory`, `SnowflakeFactory`, `FernFactory`, `BushFactory`, `LeafBananaTreeFactory`, `PlantBananaTreeFactory`
+- deprecated materials: `BarkBirch`
+- scatters: `Fern`, `GroundTwigs`, `Ivy`, `Snowlayer`
 
-## Compatibility Fixes Applied During Earlier Validation
+Failure categories observed in the baseline:
 
-The following compatibility fixes were added while bringing the pipelines forward before the April 27 native `cv2` reinstall:
+- Blender 5 API drift, such as enum spelling changes and removed shader nodes
+- empty material slots caught by the smoke validator
+- unapplied Geometry Nodes modifiers caught by the smoke validator
+- missing optional addon dependency for `Snowlayer`
+- high-memory failures in very large procedural assets or scatters
+
+Follow-up indoor recheck after fixes:
+
+| Asset | Recheck Result | Saved Blend Size | Notes |
+| --- | --- | ---: | --- |
+| `OvenFactory` | pass | 2.74 MB | isolated smoke recheck |
+| `AquariumTankFactory` | pass | 519.10 MB | still very high geometry count |
+| `SinkFactory` | pass | 0.26 MB | isolated smoke recheck |
+| `WallShelfFactory` | pass | 0.10 MB | isolated smoke recheck |
+
+Follow-up output root:
+
+- `outputs/system_smoke/indoor_fixups_recheck_20260501`
+
+Current interpretation:
+
+- The original indoor baseline failures have been repaired and rechecked individually.
+- A full 301-asset rerun has not yet been completed after the follow-up fixes.
+- Remaining known failures are concentrated in nature meshes, deprecated material compatibility, and scatters.
+
+## Large Blend Notes
+
+The largest saved `.blend` files in the May 1 baseline were:
+
+| Asset | Group | Size |
+| --- | --- | ---: |
+| `BushFactory` | nature_meshes | 1043.91 MB |
+| `AquariumTankFactory` | indoor_meshes | 1042.93 MB baseline, 519.10 MB after orphan purge recheck |
+| `FruitContainerFactory` | indoor_meshes | 643.25 MB |
+| `CactusFactory` / `ColumnarCactusFactory` | nature_meshes | 524.37 MB |
+| `GlobularCactusFactory` | nature_meshes | 321.18 MB |
+| `LargePlantContainerFactory` | indoor_meshes | 189.18 MB |
+
+Size analysis:
+
+- `AquariumTankFactory` had a large orphan mesh in the baseline save. Saving after orphan purge cut the file roughly in half without changing visible geometry.
+- `FruitContainerFactory` stayed at about 643 MB after orphan purge. Its size is from baked visible geometry, mainly realized fruit scatter.
+- Cactus, bush, and large plant assets are large because of baked remesh/scatter/detail geometry. Meaningful reductions require either preserving instances/Geometry Nodes instead of baking, or adding lower-density/LOD paths.
+
+## Compatibility Fixes Already Applied
+
+The compatibility work so far has focused on Blender 5 / NumPy 2 behavior:
 
 - Convert NumPy boolean scalars to plain Python `bool` before writing Blender RNA selection properties.
 - Make UV read/write resilient when `uv_layers.active is None`.
 - Add fallback handling for edge-loop selection operators across Blender versions.
-- Force Geometry Nodes `Mesh Boolean` to use `EXACT` solver when legacy inputs such as `Self Intersection` / `Hole Tolerant` are requested.
+- Force Geometry Nodes `Mesh Boolean` to use `EXACT` solver when legacy options are requested.
 - Make node input lookup tolerant of disabled-but-present sockets.
-- Replace legacy shader HSV node usage with `Separate Color` / `Combine Color` in HSV mode where Blender 5 removed old node ids.
+- Replace removed legacy HSV shader node usage with Blender 5-compatible color nodes where patched.
 - Allow no-terrain camera preprocessing to accept a single Blender object as `scene_objs`.
-- Add a targeted fallback in `NatureShelfTrinketsFactory` so that a creature-only memory failure can degrade to a non-creature trinket during indoors population.
+- Add targeted fallbacks for a few asset-specific smoke failures found during indoor validation.
 
-## Files Touched
+Representative files touched during compatibility work include:
 
-Key files updated during the earlier Blender 5 compatibility round include:
-
-- `infinigen/__init__.py`
-- `infinigen/assets/utils/decorate.py`
-- `infinigen/core/constraints/example_solver/geometry/planes.py`
-- `infinigen/core/placement/split_in_view.py`
-- `infinigen/core/nodes/compatibility.py`
+- `infinigen/core/nodes/node_wrangler.py`
 - `infinigen/core/nodes/utils.py`
-- `infinigen/core/placement/camera.py`
-- `infinigen/assets/materials/plant/bark_random.py`
-- `infinigen/assets/objects/tableware/pan.py`
-- `infinigen/assets/objects/tableware/plant_container.py`
-- `infinigen/assets/objects/bathroom/bathroom_sink.py`
-- `infinigen/assets/objects/bathroom/toilet.py`
-- `infinigen/assets/objects/leaves/leaf_ginko.py`
-- `infinigen/assets/objects/trees/utils/materials.py`
-- `infinigen/assets/objects/elements/nature_shelf_trinkets/generate.py`
-
-There were also several small Blender RNA boolean compatibility edits in object / utility modules touched during indoors validation.
-
-## Output Cleanup
-
-On April 20, 2026, old exploratory outputs under:
-
-- `outputs/system_smoke/indoors`
-- `outputs/system_smoke/nature`
-
-were pruned to keep only the current reference results:
-
-- `outputs/system_smoke/indoors/coarse_live11`
-- `outputs/system_smoke/nature/coarse_no_terrain4`
-- `outputs/system_smoke/nature/populate_no_terrain3`
-- `outputs/system_smoke/nature/fine_terrain_no_terrain1`
+- `infinigen/core/surface.py`
+- `infinigen/assets/utils/nodegroup.py`
+- `infinigen/assets/objects/appliances/oven.py`
+- `infinigen/assets/objects/decor/aquarium_tank.py`
+- `infinigen/assets/objects/lamp/lamp.py`
+- `infinigen/assets/objects/lamp/ceiling_classic_lamp.py`
+- `infinigen/assets/objects/seating/bedframe.py`
+- `infinigen/assets/objects/table_decorations/sink.py`
 
 ## Recommended Next Steps
 
-### For Indoors
+For environment validation:
 
-- Use `outputs/system_smoke/indoors/coarse_live11` as the current known-good coarse reference on this machine.
-- The current requested stopping point is the final `scene.blend`, so no further `render`, `mesh_save`, or export tasks are required for the indoor line unless explicitly requested.
+1. Treat native OpenCV as working.
+2. Keep full-terrain validation off native Windows unless terrain libraries are built in a supported environment.
+3. Use the no-terrain nature chain for local Blender 5 compatibility work.
+4. Use `outputs/system_smoke/indoors/coarse_live11` as the current indoor scene reference.
 
-### For Nature
+For asset validation:
 
-Three practical paths are available:
-
-1. Continue local Blender 5 compatibility work using the no-terrain smoke chain that is now known to work:
-
-```bash
-python -m infinigen_examples.generate_nature --seed 0 --task coarse -g desert.gin simple.gin --output_folder outputs/system_smoke/nature/coarse_no_terrain_next -p compose_nature.terrain_enabled=False
-```
-
-Then optionally follow with:
-
-```bash
-python -m infinigen_examples.generate_nature --seed 0 --task populate --input_folder outputs/system_smoke/nature/coarse_no_terrain_next --output_folder outputs/system_smoke/nature/populate_no_terrain_next -g desert.gin simple.gin -p compose_nature.terrain_enabled=False populate_scene.populate_bushes_enabled=False
-```
-
-2. For render validation on this machine, reduce scene complexity before rendering.
-
-- Current populated no-terrain scene is too large for both OPTIX and CPU smoke renders in the present environment.
-- The first candidate for further reduction is bush population, which is already the dominant populate-memory hotspot.
-
-3. To validate the full terrain path, move the run to an environment that supports terrain compilation and loading:
-
-- Linux
-- macOS
-- possibly WSL2, which the docs label as experimental
-
-For native Windows x86_64, the current repo documentation does not describe a supported terrain CPU build path.
-
-## Quick Sanity Checks
-
-Verify the local Python / Blender environment:
-
-```bash
-python -c "import bpy, numpy; print(bpy.app.version_string); print(numpy.__version__)"
-```
-
-Verify that native `cv2` is active:
-
-```powershell
-python -c "import cv2; print(cv2.__version__); print(cv2.__file__)"
-```
-
-Expected behavior in this environment:
-
-- `bpy.app.version_string` reports `5.1.1`
-- `numpy.__version__` reports `2.4.4`
-- `cv2.__version__` reports `4.13.0`
-- `cv2.__file__` points to `D:\Python313\Lib\site-packages\cv2\__init__.py`
+1. Rerun the full 301-asset smoke after the latest indoor and node compatibility fixes.
+2. Triage remaining nature/material/scatter failures by category: API drift first, missing optional dependency second, memory-heavy generators separately.
+3. For very large `.blend` files, separate no-quality-loss cleanup from real geometry reduction. Orphan purge is safe; reducing baked scatter/remesh detail is a modeling or LOD decision.

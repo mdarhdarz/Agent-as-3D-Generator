@@ -113,6 +113,7 @@ class SinkFactory(AssetFactory):
 
         cutter.parent = obj
         cutter.name = repr(self) + f".spawn_placeholder({i}).cutter"
+        cutter.hide_viewport = True
         cutter.hide_render = True
 
         tap_loc = (-self.params["Depth"] / 2, 0, self.params["Upper Height"])

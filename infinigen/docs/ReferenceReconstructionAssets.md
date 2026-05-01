@@ -1,39 +1,35 @@
 # Reference Reconstruction Assets
 
-This document tracks Infinigen repo-level assets and locally added presets used for reference-image reconstruction work. It should not record per-scene placement, camera status, screenshot paths, or `.blend` progress; keep those in the scene/project provenance note.
+This is the repo-level catalog for reusable Infinigen assets, presets, and wrappers that were added or modified during reference-image reconstruction work.
 
-## Native Families Used For Reconstruction
+This file only lists changed local entries. It intentionally omits placement notes, screenshots, and `.blend` progress.
 
-| Factory | Module | Native role | Local reconstruction use |
-| --- | --- | --- | --- |
-| `ChairFactory` | `infinigen.assets.objects.seating.chairs.chair` | Generic procedural chair family with seat, leg, back, decor, material, and bbox-normalization hooks. | Base family for the slatted dining chair preset. |
-| `TableDiningFactory` | `infinigen.assets.objects.tables.dining_table` | Procedural dining/side/coffee table family. | Base family for plain dining table experiments and reconstruction table studies. |
-| `SingleCabinetFactory` | `infinigen.assets.objects.shelves.single_cabinet` | Cabinet and wardrobe-style storage asset family. | Base family for flat wardrobe/cabinet reconstruction. |
-| `CeilingClassicLampFactory` | `infinigen.assets.objects.lamp.ceiling_classic_lamp` | Procedural hanging ceiling lamp family. | Base family for compact dining pendant reconstruction. |
+## Status Labels
 
-## Local Added Or Modified Presets
+| Status | Meaning |
+| --- | --- |
+| `added factory` | New reusable factory/source entry added locally. |
+| `added wrapper` | New convenience factory class that exposes a local preset or route. |
+| `modified preset` | Existing factory gained a local `style_preset` or constrained reconstruction branch. |
 
-| Factory entry point | Source file | Status | Notes |
-| --- | --- | --- | --- |
-| `ChairFactory(style_preset="dining_slat")` / `DiningSlatChairFactory` | `infinigen/assets/objects/seating/chairs/chair.py`, `infinigen/assets/objects/seating/chairs/dining_slat_sdf.py` | modified native preset / local reconstruction asset | Painted slat-back dining chair route created for the dining reference reconstruction. The current version stores the successful control-tube `MeshToSDFGrid -> SDFGridMean -> GridToMesh` frame workflow in source code, then combines it with a high-resolution bullnose seat and a reference-tuned aged deep red-brown painted wood material. `DiningSlatChairFactory` is exported and listed in `tests/assets/list_indoor_meshes.txt`, but should remain marked as local reconstruction work until reviewed for upstream-native generality. |
-| `TableDiningFactory(style_preset="simple_dining")` | `infinigen/assets/objects/tables/dining_table.py` | available local preset | Plain four-leg dining table route with explicit preset parameters and a dedicated creation path. Verify in the current checkout before reuse. |
-| `SingleCabinetFactory(style_preset="wardrobe_flat")` | `infinigen/assets/objects/shelves/single_cabinet.py` | available local preset | Flat wardrobe/cabinet route with dedicated placeholder and asset creation path. Verify dimensions and door rhythm against the target reference before reuse. |
-| `WardrobeFlatCabinetFactory(...)` | `infinigen/assets/objects/shelves/single_cabinet.py` | available local wrapper | Convenience wrapper that defaults to `style_preset="wardrobe_flat"`. |
-| `CeilingClassicLampFactory(style_preset="dining_cluster")` | `infinigen/assets/objects/lamp/ceiling_classic_lamp.py` | available local preset | Compact clustered pendant route with dedicated placeholder and asset creation path. Verify scale, cable length, and shade count for each scene. |
+## Changed Assets And Presets
 
-## Scene-Only Assets Not Yet In Infinigen
-
-These object groups may exist in reconstruction `.blend` files, but they are not reusable Infinigen factories unless promoted later:
-
-| Scene object prefix | Current source | Notes |
-| --- | --- | --- |
-| `ProcDiningTable_InfinigenRefined_*` | Blender MCP direct procedural mesh | Informed by Infinigen table construction patterns, but not registered as a reusable factory. |
-| `ProcDiningTable_InfinigenRefined_Placemat*` | Blender MCP direct procedural mesh and packed material | Scene-specific cloth placemat; not an Infinigen asset. |
-| `ProcCenterpieceHD_*`, `ProcPendantHD_*`, `ProcLeftWindowHD_*`, `ProcRightRecessHD_*`, `ProcWallpaperBandVine*` | Blender MCP direct scene reconstruction | Reference-specific reconstruction objects; promote only after a real reusable factory design exists. |
+| Entry Point | Status | Source | Registration | Validation | Notes |
+| --- | --- | --- | --- | --- | --- |
+| `infinigen.assets.objects.seating.chairs.DiningSlatChairFactory` | `added wrapper` for `modified preset` | `infinigen/assets/objects/seating/chairs/chair.py`; `infinigen/assets/objects/seating/chairs/dining_slat_sdf.py` | exported from `infinigen/assets/objects/seating/chairs/__init__.py`; listed in `tests/assets/list_indoor_meshes.txt` | May 1 all-asset smoke: pass; about 1.72 MB, 84,252 tris | New curated-list entry. Wraps `ChairFactory(style_preset="dining_slat")`; uses a control-tube `MeshToSDFGrid -> SDFGridMean -> GridToMesh` frame workflow plus tuned red painted wood material. |
+| `ChairFactory(style_preset="dining_slat")` | `modified preset` | `infinigen/assets/objects/seating/chairs/chair.py`; `infinigen/assets/objects/seating/chairs/dining_slat_sdf.py` | exposed through `DiningSlatChairFactory` | May 1 smoke through wrapper: pass | Backing preset for the dining slat chair wrapper. |
+| `infinigen.assets.objects.organizer.napkin_holder.NapkinHolderFactory` | `added factory` | `infinigen/assets/objects/organizer/napkin_holder.py` | exported from `infinigen/assets/objects/organizer/__init__.py`; listed in `tests/assets/list_indoor_meshes.txt` | May 1 all-asset smoke: pass; about 0.17 MB, 3,604 tris | New reusable tabletop napkin holder with base, side panels, optional press bar, and individual napkin sheets. |
+| `TableDiningFactory(style_preset="simple_dining")` | `modified preset` | `infinigen/assets/objects/tables/dining_table.py` | not a standalone curated-list entry | pending current full-list validation | Plain four-leg dining table route with explicit preset parameters. |
+| `SingleCabinetFactory(style_preset="wardrobe_flat")` | `modified preset` | `infinigen/assets/objects/shelves/single_cabinet.py` | not a standalone curated-list entry | pending current full-list validation | Flat wardrobe/cabinet route with dedicated placeholder and asset creation path. |
+| `WardrobeFlatCabinetFactory(...)` | `added wrapper` for `modified preset` | `infinigen/assets/objects/shelves/single_cabinet.py` | not a standalone curated-list entry | pending current full-list validation | Convenience wrapper around `SingleCabinetFactory(style_preset="wardrobe_flat")`. |
+| `CeilingClassicLampFactory(style_preset="dining_cluster")` | `modified preset` | `infinigen/assets/objects/lamp/ceiling_classic_lamp.py` | uses existing `CeilingClassicLampFactory` curated-list entry | May 1 all-asset smoke for factory entry: pass | Compact clustered pendant route. Verify scale, cable length, and shade count per scene. |
 
 ## Maintenance Rules
 
-- Update this document when adding, renaming, or validating a local `style_preset` or wrapper factory.
-- Mark unvalidated presets as `in progress` or `pending`; do not present them as stable just because they instantiate.
-- Keep exact module paths and factory signatures here.
-- Keep per-scene transforms, object visibility, archived blockout names, and screenshot organization in the scene/project provenance note.
+- Add a row when a reusable reconstruction asset, preset, or wrapper is added or renamed.
+- Use `added factory` for genuinely new reusable factories.
+- Use `added wrapper` for new convenience classes that expose local presets.
+- Use `modified preset` for local branches inside existing factories.
+- Keep validation short and concrete: date, smoke family, pass/fail, output name if useful.
+- Keep compatibility-only bug fixes in `docs/WindowsBpy5CompatibilityStatus.md`, not in this catalog.
+- Keep scene transforms, object visibility, archived blockout names, screenshots, and `.blend` state out of this repo-level catalog.

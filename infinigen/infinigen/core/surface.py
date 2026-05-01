@@ -345,7 +345,7 @@ def assign_material(
     for obj in objs:
         if selection is None:
             obj.active_material = material
-            return
+            continue
 
         if len(obj.material_slots) == 0:
             raise ValueError(

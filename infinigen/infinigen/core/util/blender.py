@@ -797,7 +797,7 @@ def recalc_normals(obj, inside=False):
         bpy.ops.mesh.normals_make_consistent(inside=inside)
 
 
-def save_blend(path, autopack=False, verbose=False):
+def save_blend(path, autopack=False, verbose=False, purge_orphans=False):
     if verbose:
         print(f"Saving .blend to {path} ({'with' if autopack else 'without'} textures)")
 
@@ -835,6 +835,11 @@ def save_blend(path, autopack=False, verbose=False):
         return datablocks
 
     with Suppress():
+        if purge_orphans:
+            try:
+                bpy.ops.outliner.orphans_purge(do_recursive=True)
+            except TypeError:
+                bpy.ops.outliner.orphans_purge()
         if autopack:
             bpy.ops.file.autopack_toggle()
         try:

@@ -369,12 +369,11 @@ def geometry_nodes(nw: NodeWrangler):
 
     curve_circle_2 = nw.new_node(Nodes.CurveCircle)
 
-    curve_to_mesh_2 = nw.new_node(
-        Nodes.CurveToMesh,
-        input_kwargs={
-            "Curve": set_curve_radius,
-            "Profile Curve": curve_circle_2.outputs["Curve"],
-        },
+    curve_to_mesh_2 = nw.curve2mesh(
+        curve_line_2,
+        curve_circle_2.outputs["Curve"],
+        scale=map_range.outputs["Result"],
+        fill_caps=False,
     )
 
     flip_faces = nw.new_node(Nodes.FlipFaces, input_kwargs={"Mesh": curve_to_mesh_2})

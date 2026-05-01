@@ -298,13 +298,11 @@ def nodegroup_bulb(nw: NodeWrangler):
         Nodes.CurveCircle, input_kwargs={"Radius": 0.1500, "Resolution": 100}
     )
 
-    curve_to_mesh_3 = nw.new_node(
-        Nodes.CurveToMesh,
-        input_kwargs={
-            "Curve": set_curve_radius_1,
-            "Profile Curve": curve_circle_3.outputs["Curve"],
-            "Fill Caps": True,
-        },
+    curve_to_mesh_3 = nw.curve2mesh(
+        resample_curve_1,
+        curve_circle_3.outputs["Curve"],
+        scale=float_curve_1,
+        fill_caps=True,
     )
 
     join_geometry_1 = nw.new_node(
@@ -351,12 +349,11 @@ def nodegroup_bulb(nw: NodeWrangler):
 
     curve_circle = nw.new_node(Nodes.CurveCircle, input_kwargs={"Resolution": 100})
 
-    curve_to_mesh = nw.new_node(
-        Nodes.CurveToMesh,
-        input_kwargs={
-            "Curve": set_curve_radius,
-            "Profile Curve": curve_circle.outputs["Curve"],
-        },
+    curve_to_mesh = nw.curve2mesh(
+        resample_curve,
+        curve_circle.outputs["Curve"],
+        scale=float_curve,
+        fill_caps=False,
     )
 
     set_material_1 = nw.new_node(
@@ -740,12 +737,11 @@ def nodegroup_lamp_head(nw: NodeWrangler):
 
     curve_circle = nw.new_node(Nodes.CurveCircle, input_kwargs={"Resolution": 100})
 
-    curve_to_mesh = nw.new_node(
-        Nodes.CurveToMesh,
-        input_kwargs={
-            "Curve": set_curve_radius,
-            "Profile Curve": curve_circle.outputs["Curve"],
-        },
+    curve_to_mesh = nw.curve2mesh(
+        curve_line,
+        curve_circle.outputs["Curve"],
+        scale=map_range.outputs["Result"],
+        fill_caps=False,
     )
 
     flip_faces = nw.new_node(Nodes.FlipFaces, input_kwargs={"Mesh": curve_to_mesh})

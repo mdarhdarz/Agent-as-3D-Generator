@@ -119,6 +119,9 @@ class AquariumTankFactory(AssetFactory):
         self.glass_surface.apply(assets, selection="glass")
         # surface.add_material(assets, self.belt_surface, selection="belt")
         self.belt_surface.apply(assets, selection="belt")
+        asset_list = assets if isinstance(assets, (list, tuple)) else [assets]
+        for asset in asset_list:
+            butil.purge_empty_materials(asset)
 
         # if self.scratch:
         #     self.scratch.apply(assets)

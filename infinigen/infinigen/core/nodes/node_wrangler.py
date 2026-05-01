@@ -66,7 +66,7 @@ def geometry_node_group_empty_new():
 
 def warn_with_traceback(message, category, filename, lineno, file=None, line=None):
     traceback_str = " ".join(traceback.format_stack())
-    traceback_files = re.findall('/([^/]*\.py)", line ([0-9]+)', traceback_str)
+    traceback_files = re.findall(r'/([^/]*\.py)", line ([0-9]+)', traceback_str)
     traceback_files = [
         f"{f}:{l}"
         for f, l in traceback_files
@@ -96,6 +96,7 @@ def _normalize_enum_name(value):
 LEGACY_ENUM_ALIASES = {
     "BEZIER": ["B\u00e9zier", "Bezier"],
     "CATMULL_ROM": ["Catmull-Rom", "Catmull Rom"],
+    "NGONS": ["N-gons", "Ngons"],
     "POLY": ["Poly"],
 }
 
@@ -773,14 +774,18 @@ class NodeWrangler:
             ],
         )
 
-    def curve2mesh(self, curve, profile_curve=None):
+    def curve2mesh(self, curve, profile_curve=None, scale=None, fill_caps=True):
+        curve_to_mesh = self.new_node(
+            Nodes.CurveToMesh,
+            input_kwargs={"Curve": curve, "Profile Curve": profile_curve},
+        )
+        if "Fill Caps" in curve_to_mesh.inputs:
+            self.connect_input(curve_to_mesh.inputs["Fill Caps"], fill_caps)
+        if scale is not None and "Scale" in curve_to_mesh.inputs:
+            self.connect_input(curve_to_mesh.inputs["Scale"], scale)
         return self.new_node(
             Nodes.SetShadeSmooth,
-            [
-                self.new_node(Nodes.CurveToMesh, [curve, profile_curve, True]),
-                None,
-                False,
-            ],
+            [curve_to_mesh, None, False],
         )
 
     def build_float_curve(self, x, anchors, handle="VECTOR"):

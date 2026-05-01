@@ -80,6 +80,7 @@ def geo_radius(
             [nw.new_node(Nodes.CurveCircle, input_kwargs={"Resolution": resolution})],
             input_kwargs={"Rotation": [0, 0, rotation]},
         ),
+        scale=radius,
     )
     if merge_distance > 0:
         geometry = nw.new_node(Nodes.MergeByDistance, [geometry, None, merge_distance])

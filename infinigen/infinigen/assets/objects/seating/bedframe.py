@@ -39,8 +39,6 @@ class BedFrameFactory(ChairFactory):
     )
     back_types = (
         "weighted_choice",
-        (3, "coiled"),
-        (3, "pad"),
         (2, "whole"),
         (1, "horizontal-bar"),
         (1, "vertical-bar"),
@@ -55,12 +53,14 @@ class BedFrameFactory(ChairFactory):
             self.has_all_legs = uniform() < 0.2
             self.leg_thickness = uniform(0.08, 0.12)
             self.leg_height = uniform(0.2, 0.6)
-            self.leg_decor_type = rg(self.leg_decor_types)
+            self.leg_decor_type = "none"
             self.leg_decor_wrapped = uniform() < 0.5
             self.back_height = uniform(0.5, 1.3)
             self.seat_back = 1
             self.seat_subdivisions_x = np.random.randint(1, 4)
             self.seat_subdivisions_y = int(log_uniform(4, 10))
+            self.has_leg_x_bar = False
+            self.has_leg_y_bar = False
             self.has_arm = False
             self.leg_type = "vertical"
             self.leg_x_offset = 0
@@ -88,6 +88,32 @@ class BedFrameFactory(ChairFactory):
             self.panel_distance = uniform(0.3, 0.5)
             self.panel_margin = uniform(0.01, 0.02)
             self.post_init()
+
+    def create_asset(self, **params) -> bpy.types.Object:
+        obj = super().create_asset(**params)
+        self.align_mattress_support(obj)
+        return obj
+
+    def align_mattress_support(self, obj):
+        areas_by_z = {}
+        for poly in obj.data.polygons:
+            if poly.normal.z <= 0.75:
+                continue
+            z = round(poly.center.z, 3)
+            areas_by_z[z] = areas_by_z.get(z, 0.0) + poly.area
+        if not areas_by_z:
+            return
+        support_z = max(areas_by_z, key=areas_by_z.get)
+        co = read_co(obj)
+        bottom_z = co[:, -1].min()
+        top_z = co[:, -1].max()
+        below_scale = self.leg_height / max(support_z - bottom_z, 1e-6)
+        above_scale = self.back_height / max(top_z - support_z, 1e-6)
+        below_support = co[:, -1] < support_z
+        co[below_support, -1] = (co[below_support, -1] - support_z) * below_scale
+        co[~below_support, -1] = (co[~below_support, -1] - support_z) * above_scale
+        write_co(obj, co)
+        butil.apply_transform(obj)
 
     def make_seat(self):
         obj = new_grid(
