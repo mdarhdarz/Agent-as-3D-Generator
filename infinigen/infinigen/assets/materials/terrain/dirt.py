@@ -344,6 +344,10 @@ class Dirt:
         surface.add_material(obj, shader_dirt, selection=selection)
 
 
+def apply(obj, selection=None, **kwargs):
+    Dirt().apply(obj, selection=selection, **kwargs)
+
+
 if __name__ == "__main__":
     mat = "dirt"
     if not os.path.isdir(os.path.join("outputs", mat)):

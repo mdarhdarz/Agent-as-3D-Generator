@@ -75,7 +75,9 @@ class AquariumTankFactory(AssetFactory):
         write_attribute(tank, 1, "glass", "FACE")
         parts = [tank]
         parts.extend(self.make_belts())
-        base_obj = self.base_factory.create_asset(**params)
+        base_params = dict(params)
+        base_params["face_size"] = max(base_params.get("face_size", 0.06), 0.06)
+        base_obj = self.base_factory.create_asset(**base_params)
         co = read_co(base_obj)
         x_min, x_max = np.amin(co, 0), np.amax(co, 0)
         scale = uniform(0.7, 0.9) / np.max(

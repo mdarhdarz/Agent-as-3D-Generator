@@ -11,6 +11,7 @@ This file only lists changed local entries. It intentionally omits placement not
 | `added factory` | New reusable factory/source entry added locally. |
 | `added wrapper` | New convenience factory class that exposes a local preset or route. |
 | `modified preset` | Existing factory gained a local `style_preset` or constrained reconstruction branch. |
+| `modified default` | Existing factory default behavior changed locally. |
 
 ## Changed Assets And Presets
 
@@ -23,6 +24,11 @@ This file only lists changed local entries. It intentionally omits placement not
 | `SingleCabinetFactory(style_preset="wardrobe_flat")` | `modified preset` | `infinigen/assets/objects/shelves/single_cabinet.py` | not a standalone curated-list entry | pending current full-list validation | Flat wardrobe/cabinet route with dedicated placeholder and asset creation path. |
 | `WardrobeFlatCabinetFactory(...)` | `added wrapper` for `modified preset` | `infinigen/assets/objects/shelves/single_cabinet.py` | not a standalone curated-list entry | pending current full-list validation | Convenience wrapper around `SingleCabinetFactory(style_preset="wardrobe_flat")`. |
 | `CeilingClassicLampFactory(style_preset="dining_cluster")` | `modified preset` | `infinigen/assets/objects/lamp/ceiling_classic_lamp.py` | uses existing `CeilingClassicLampFactory` curated-list entry | May 1 all-asset smoke for factory entry: pass | Compact clustered pendant route. Verify scale, cable length, and shade count per scene. |
+| `infinigen.assets.objects.decor.aquarium_tank.AquariumTankFactory` | `modified default` | `infinigen/assets/objects/decor/aquarium_tank.py` | existing indoor curated-list entry | direct Blender MCP insertion on May 1, 2026: pass; updated smoke validator: pass; full 301-asset rerun pending | Internal decoration `face_size` is clamped to at least `0.06` to avoid very large remesh output while preserving the inspected visual quality. |
+| `infinigen.assets.objects.tableware.fruit_container.FruitContainerFactory` | `modified default` | `infinigen/assets/objects/tableware/fruit_container.py` | existing indoor curated-list entry | direct Blender MCP insertion on May 1, 2026: pass; updated smoke validator: pass; full 301-asset rerun pending | Fruit scatter defaults to live Geometry Nodes instancing with `apply_geo=False` and `realize=False`; the source fruit collection must remain available and hidden for the live modifier. |
+| `infinigen.assets.objects.seating.chairs.office_chair.OfficeChairFactory` | `modified default` | `infinigen/assets/objects/seating/chairs/office_chair.py` | existing indoor curated-list entry | direct Blender MCP insertion on May 1, 2026: pass; updated smoke validator: pass; full 301-asset rerun pending | Chair assembly Geometry Nodes are kept as a live `NODES` modifier for normal Blender use. |
+| `infinigen.assets.objects.table_decorations.vase.VaseFactory` | `modified default` | `infinigen/assets/objects/table_decorations/vase.py` | existing indoor curated-list entry | direct Blender MCP insertion on May 1, 2026: pass; updated smoke validator: pass; full 301-asset rerun pending | Vase output keeps `NODES`, `SOLIDIFY`, and `SUBSURF` modifiers instead of baking them by default. |
+| `infinigen.assets.objects.seating.sofa.SofaFactory` | `modified default` | `infinigen/assets/objects/seating/sofa.py` | existing indoor curated-list entry | direct Blender MCP insertion on May 1, 2026: pass; updated smoke validator: pass; full 301-asset rerun pending | Sofa keeps the final `SUBSURF` modifier; the initial Geometry Nodes stage remains baked because the copy path otherwise produces an invalid single-point object. |
 
 ## Maintenance Rules
 
@@ -30,6 +36,7 @@ This file only lists changed local entries. It intentionally omits placement not
 - Use `added factory` for genuinely new reusable factories.
 - Use `added wrapper` for new convenience classes that expose local presets.
 - Use `modified preset` for local branches inside existing factories.
+- Use `modified default` when an existing factory's normal output behavior changed without adding a named preset.
 - Keep validation short and concrete: date, smoke family, pass/fail, output name if useful.
 - Keep compatibility-only bug fixes in `docs/WindowsBpy5CompatibilityStatus.md`, not in this catalog.
 - Keep scene transforms, object visibility, archived blockout names, screenshots, and `.blend` state out of this repo-level catalog.

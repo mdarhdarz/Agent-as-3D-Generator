@@ -14,6 +14,8 @@ This document is a practical handoff for running Infinigen locally on native Win
 - Rendering the populated no-terrain nature scene is still blocked by memory pressure in Cycles / OPTIX.
 - The May 1 all-asset smoke baseline covered 301 curated assets and saved `.blend` files without rendering.
 - After follow-up fixes, the 4 original indoor mesh failures now pass isolated rechecks.
+- Large indoor assets now prefer Blender workflow defaults where safe: preserving Geometry Nodes, modifier stacks, or instances instead of baking them into large meshes.
+- Direct Blender MCP insertion into the currently open `.blend` is the usual path for checking the updated Blender-oriented indoor assets when the Blender process import path is configured.
 
 ## Local Environment
 
@@ -205,6 +207,7 @@ Current interpretation:
 - The original indoor baseline failures have been repaired and rechecked individually.
 - A full 301-asset rerun has not yet been completed after the follow-up fixes.
 - Remaining known failures are concentrated in nature meshes, deprecated material compatibility, and scatters.
+- A later Blender workflow pass changed several large indoor asset defaults to avoid unnecessary baking for normal Blender use. These changes have not yet been covered by a full 301-asset rerun.
 
 ## Large Blend Notes
 
@@ -224,6 +227,27 @@ Size analysis:
 - `AquariumTankFactory` had a large orphan mesh in the baseline save. Saving after orphan purge cut the file roughly in half without changing visible geometry.
 - `FruitContainerFactory` stayed at about 643 MB after orphan purge. Its size is from baked visible geometry, mainly realized fruit scatter.
 - Cactus, bush, and large plant assets are large because of baked remesh/scatter/detail geometry. Meaningful reductions require either preserving instances/Geometry Nodes instead of baking, or adding lower-density/LOD paths.
+
+## Blender Workflow Asset Defaults
+
+For assets that are primarily used inside Blender, the current local preference is to preserve modifiers and instances instead of baking them when the evaluated result remains usable.
+
+Updated indoor defaults:
+
+| Asset | Current Blender Behavior | Validation |
+| --- | --- | --- |
+| `AquariumTankFactory` | internal decoration `face_size` is clamped to at least `0.06`; visible quality was checked manually and remained acceptable while greatly reducing the large remesh output | direct MCP insertion into the active Blender scene: pass; updated validator: pass |
+| `FruitContainerFactory` | fruit cover scatter keeps Geometry Nodes instancing by default with `apply_geo=False` and `realize=False` | direct MCP insertion: pass; `scatter:fruit` remains as a live `NODES` modifier carrier |
+| `OfficeChairFactory` | keeps the assembly Geometry Nodes modifier instead of applying it | direct MCP insertion: pass; retained `NODES` |
+| `VaseFactory` | keeps `NODES`, `SOLIDIFY`, and `SUBSURF` modifiers | direct MCP insertion: pass; retained all three modifiers |
+| `SofaFactory` | keeps the final `SUBSURF` modifier; the initial sofa Geometry Nodes stage still needs to be baked because the later copy path otherwise leaves an invalid single-point object | direct MCP insertion: pass; retained `SUBSURF` |
+
+Current Blender MCP direct insertion test:
+
+- collection: `Codex MCP Blender Assets`
+- inserted assets: `AquariumTankFactory`, `FruitContainerFactory`, `OfficeChairFactory`, `VaseFactory`, `SofaFactory`
+- no standalone asset `.blend` output was created for this MCP test
+- the Blender MCP process needed `D:\Python313\Lib\site-packages` added to `sys.path` before importing Infinigen, because the open Blender process used Blender's bundled Python executable
 
 ## Compatibility Fixes Already Applied
 

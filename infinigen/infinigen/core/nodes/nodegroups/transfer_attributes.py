@@ -14,11 +14,18 @@ from infinigen.core.util import blender as butil
 def uvs_to_attribute(obj, name="uv_map"):
     assert obj.type == "MESH"
 
+    uv_layer = obj.data.uv_layers.active
+    if uv_layer is None and len(obj.data.uv_layers) > 0:
+        uv_layer = obj.data.uv_layers[0]
+        obj.data.uv_layers.active = uv_layer
+    if uv_layer is None:
+        raise ValueError(f"{obj.name} has no active UV layer")
+
     n = len(obj.data.vertices)
     data = np.empty((n, 3), dtype=np.float32)
 
     for loop in obj.data.loops:
-        u, v = obj.data.uv_layers.active.data[loop.index].uv
+        u, v = uv_layer.data[loop.index].uv
         data[loop.vertex_index] = u, v, 0
 
     attr = obj.data.attributes.new(name, type="FLOAT_VECTOR", domain="POINT")

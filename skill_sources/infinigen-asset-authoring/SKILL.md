@@ -118,7 +118,16 @@ Use this when the asset should read as one manufactured body rather than separat
 - Prefer exposed GN inputs and named attributes over hidden magic constants.
 - If transpiled code becomes very large, refactor repeated nodegroups instead of adding more generated bulk.
 - When validating a brand-new asset, prove it works by exact import path before relying on convenience exports.
-- Do not leave temporary carrier objects, control meshes, node groups, materials, or review helpers in the scene unless they are deliberate debug outputs. Remove unused data-blocks when safe, and give retained helpers explicit `STUDY_` or `DEBUG_` naming.
+- Do not leave temporary carrier objects, control meshes, node groups, materials, or review helpers in the scene unless they are live modifier dependencies or deliberate debug outputs. Remove unused data-blocks when safe, and give retained helpers explicit `STUDY_`, `DEBUG_`, or dependency-oriented naming.
+
+## Blender Modifier And Instancing Preference
+
+- When an asset is meant to stay in a Blender `.blend` workflow rather than export, simulation, or destructive mesh editing, prefer preserving live Geometry Nodes, modifier stacks, and instances over baking them into dense meshes.
+- Use `apply=False` and `realize=False` when the evaluated object remains visually correct and downstream code does not need raw vertices, faces, transferred attributes, or joined mesh data.
+- Bake modifiers or realize instances when later steps require concrete mesh geometry, such as `join_objects`, stable-pose computation, boolean operations, remesh/detail transfer, material/tag writes that depend on face domains, sim-ready export, or asset formats that cannot carry the live dependency.
+- If a live Geometry Nodes modifier depends on source collections or prototype objects, keep those data-blocks available and hidden instead of deleting them. Audit that the dependency still evaluates after saving or inserting into an active Blender scene.
+- Validate both the stored mesh data and the evaluated depsgraph result. A single-vertex object can be a valid Geometry Nodes or instancing carrier only when its live modifier intentionally provides the visible geometry.
+- For normal Blender review and iteration, prefer direct Blender MCP insertion into the currently open `.blend` over saving intermediate single-asset `.blend` files, unless the user needs an artifact for handoff, regression comparison, or batch smoke testing.
 
 ## Provenance For Local Or Reference Assets
 

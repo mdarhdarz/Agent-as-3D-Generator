@@ -114,13 +114,13 @@ def fish_genome():
         coord = (U(0.3, 0.45), 1, 0.7)
         for i in range(n_dorsal):
             dorsal_fin = parts.ridged_fin.FishFin(
-                fin_params((U(0.4, 0.6), 0.5, 0.2), dorsal=True), rig=False
+                fin_params((U(0.28, 0.42), 0.32, 0.14), dorsal=True), rig=False
             )
             genome.attach(
                 genome.part(dorsal_fin),
                 body,
-                coord=coord,
-                joint=Joint(rest=(0, -100, 0)),
+                coord=(coord[0], coord[1], 1.03),
+                joint=Joint(rest=(0, -95, 0)),
             )
 
     def rot(r):
@@ -285,18 +285,18 @@ class FishFactory(AssetFactory):
                 else clip_gaussian(0.2, 0.1, 0.05, 0.45)
             )
 
-            body_material_fac = weighted_sample(material_assignments.fish)
-            self.body_material = body_material_fac()
+            self.body_material = materials.creature.FishBody()
             self.fin_material = materials.creature.FishFin()
             self.eye_material = materials.creature.FishEye()
 
     def apply_materials(self, obj):
-        if obj.name.find("Nurb") >= 0:
-            FishGeomod().apply(obj, kwargs={"rand": True})
+        body_parts = joining.get_parts(obj)
+        for part in body_parts:
+            if part.name.find("Nurb") >= 0:
+                FishGeomod().apply(part, rand=True)
+            surface.assign_material(part, self.body_material())
 
-        surface.assign_material(obj, self.body_material())
-
-        mat = joining.get_parts(obj)[0].active_material
+        mat = body_parts[0].active_material if body_parts else None
         gold = mat is not None and "gold" in mat.name.lower()
         self.fin_material.apply(
             joining.get_parts(obj, False, "Fin"), shader_kwargs={"goldfish": gold}
@@ -342,6 +342,7 @@ class FishFactory(AssetFactory):
         else:
             joined = butil.join_objects([joined] + extras)
             joined.parent = root
+        butil.purge_empty_materials(joined)
 
         tag_object(root, "fish")
 

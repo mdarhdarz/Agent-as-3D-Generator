@@ -164,5 +164,9 @@ def apply(obj, points_fn, base_radius=0.002, realize=True):
         input_args=[instances, points_fn, realize],
         input_attributes=[None, "selection"],
     )
-    butil.delete_collection(instances)
+    if realize:
+        butil.purge_empty_materials(spikes)
+        butil.delete_collection(instances)
+    else:
+        spikes.data.materials.clear()
     return spikes

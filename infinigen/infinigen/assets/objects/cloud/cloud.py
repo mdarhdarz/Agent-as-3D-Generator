@@ -29,6 +29,7 @@ def set_curves(curve, points):
 
 class Cumulus(object):
     DENSITY_RANGE = [1.0, 1.0]
+    SHADER_DENSITY_RANGE = [0.12, 0.28]
     ANISOTROPY_RANGE = [-0.5, 0.5]
     NOISE_SCALE_RANGE = [8.0, 16.0]
     NOISE_DETAIL_RANGE = [1.0, 16.0]
@@ -93,7 +94,7 @@ class Cumulus(object):
     def update_shader_params(self, shader_params):
         shader_params.update(
             {
-                "density": np.random.uniform(0.05, 0.25),
+                "density": np.random.uniform(*self.SHADER_DENSITY_RANGE),
             }
         )
         return shader_params
@@ -223,12 +224,13 @@ class Cumulus(object):
 
 class Cumulonimbus(Cumulus):
     DENSITY_RANGE = [1.0, 1.0]
+    SHADER_DENSITY_RANGE = [0.16, 0.32]
     EMISSION_RANGE = [0.01, 0.01]
 
     PLACEHOLDER_DENSITY = 8.0
-    MAX_EXPECTED_SCALE = 2048.0
+    MAX_EXPECTED_SCALE = 384.0
 
-    PLANE_SCALES = [16, 16, 32]
+    PLANE_SCALES = [16, 16, 8]
 
     def __init__(self, name, ref_cloud):
         super().__init__(name, ref_cloud)
@@ -263,16 +265,16 @@ class Cumulonimbus(Cumulus):
         )
 
     def get_scale(self):
-        scale_x = np.random.uniform(512.0, 1024.0)
+        scale_z = np.random.uniform(64.0, 128.0)
+        scale_x = np.random.uniform(scale_z * 1.6, scale_z * 2.6)
         scale_y = np.random.uniform(0.5, 2.0) * scale_x
-        scale_z = np.random.uniform(256.0, 512.0)
         scales = [scale_x, scale_y, scale_z]
         return scales
 
     def update_shader_params(self, shader_params):
         shader_params.update(
             {
-                "density": np.random.uniform(0.1, 0.3),
+                "density": np.random.uniform(*self.SHADER_DENSITY_RANGE),
             }
         )
         return shader_params
@@ -280,11 +282,12 @@ class Cumulonimbus(Cumulus):
 
 class Stratocumulus(Cumulus):
     ANGLE_ROTATE_RANGE = [0.0, np.pi / 4]
+    SHADER_DENSITY_RANGE = [0.10, 0.24]
 
     def update_shader_params(self, shader_params):
         shader_params.update(
             {
-                "density": np.random.uniform(0.01, 0.10),
+                "density": np.random.uniform(*self.SHADER_DENSITY_RANGE),
             }
         )
         return shader_params
@@ -330,6 +333,7 @@ class Stratocumulus(Cumulus):
 class Altocumulus(Cumulus):
     SCATTER_VORONOI_SCALE_RANGE = [1.0, 4.0]
     SCATTER_GRID_VERTICES_RANGE = [4, 12]
+    SHADER_DENSITY_RANGE = [0.12, 0.28]
 
     NUM_SUBCLOUDS = 8
 
@@ -394,7 +398,7 @@ class Altocumulus(Cumulus):
 
         shader_params = [
             {
-                "density": np.random.uniform(0.05, 0.25),
+                "density": np.random.uniform(*self.SHADER_DENSITY_RANGE),
                 "anisotropy": param[0],
                 "noise_scale": param[1],
                 "noise_detail": param[2],

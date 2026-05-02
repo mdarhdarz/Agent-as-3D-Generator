@@ -575,7 +575,7 @@ class LeafFactoryPine(AssetFactory):
 
     def create_asset(self, **params):
         # with FixedSeed(self.factory_seed):
-        seed = randint(0, 1e6)
+        seed = randint(0, int(1e6))
         middle_y = normal(0.0, 0.1)
         middle_z = normal(0.0, 0.1)
         length = randint(25, 35)

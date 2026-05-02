@@ -38,6 +38,7 @@ def add_hair_particles(obj, params, props):
 
     for k, v in props.items():
         setattr(mod.particle_system, k, v)
+    return mod.particle_system
 
 
 def as_hair_bsdf(mat, hair_bsdf_params):
@@ -359,7 +360,50 @@ def geo_transfer_hair_attributes(nw, obj, attrs):
     )
 
 
-def configure_hair(obj, root, hair_genome: dict, apply=True, is_dynamic=None):
+def particle_params_from_grooming(hair_genome):
+    grooming = hair_genome.get("grooming", {})
+    length_params = np.asarray(
+        grooming.get("Length MinMaxScale", (0.014, 0.04, 40.0)), dtype=np.float32
+    )
+    root_radius = float(grooming.get("Root Radius", 0.001))
+    tuft_amount = max(1, int(grooming.get("Tuft Amount", hair_genome["clump_n"])))
+
+    return {
+        "hair_length": float(np.max(length_params[:2])),
+        "hair_step": 8,
+        "render_step": 5,
+        "display_step": 4,
+        "use_modifier_stack": True,
+        "use_advanced_hair": True,
+        "render_type": "PATH",
+        "child_type": "INTERPOLATED",
+        "rendered_child_count": tuft_amount,
+        "child_percent": min(100, max(20, int(tuft_amount * 0.4))),
+        "child_length": 1.0,
+        "clump_factor": float(np.clip(grooming.get("Tuft Clumping", 0.0), -1.0, 1.0)),
+        "clump_shape": 0.0,
+        "roughness_1": float(
+            abs(grooming.get("Strand Random Mag", 0.0))
+            + abs(grooming.get("Post Clump Noise Mag", 0.0))
+        ),
+        "roughness_1_size": max(float(np.max(length_params[:2])), 1e-4),
+        "roughness_2": float(abs(grooming.get("Strand Perlin Mag", 0.0))),
+        "roughness_2_size": 1.0,
+        "roughness_2_threshold": 0.0,
+        "root_radius": 1.0,
+        "tip_radius": 0.0,
+        "radius_scale": root_radius,
+    }
+
+
+def configure_hair(
+    obj,
+    root,
+    hair_genome: dict,
+    apply=True,
+    is_dynamic=None,
+    preserve_particle_system=False,
+):
     if is_dynamic is None:
         is_dynamic = any(m.type == "ARMATURE" for m in obj.modifiers)
 
@@ -374,12 +418,23 @@ def configure_hair(obj, root, hair_genome: dict, apply=True, is_dynamic=None):
         obj, root, avoid_features_dist=hair_genome["avoid_features_dist"]
     )
 
+    particle_params = {"count": n_guide_hairs}
+    if preserve_particle_system:
+        particle_params.update(particle_params_from_grooming(hair_genome))
+
     logger.debug(f"Add particle system with {n_guide_hairs=}")
-    add_hair_particles(
+    particle_system = add_hair_particles(
         obj,
-        params={"count": n_guide_hairs},
+        params=particle_params,
         props={"vertex_group_density": avoid_group.name},
     )
+
+    if preserve_particle_system:
+        if obj.active_material is not None:
+            hair_mat = as_hair_bsdf(obj.active_material, hair_genome["material"])
+            obj.data.materials.append(hair_mat)
+            particle_system.settings.material = len(obj.material_slots)
+        return particle_system
 
     logger.debug("Converting particles to curves")
     with butil.SelectObjects(obj):

@@ -38,7 +38,7 @@ class FruitCover:
             self.dimension = mean(mean(o.dimensions) for o in self.col.objects)
             self.shrink_rate = max(self.dimension, 2.0)
 
-    def apply(self, obj, selection=None):
+    def apply(self, obj, selection=None, apply_geo=False, realize=False):
         for obj in obj if isinstance(obj, Iterable) else [obj]:
             scale = uniform(0.06, 0.08) / self.shrink_rate
             scattered = scatter_instances(
@@ -50,8 +50,8 @@ class FruitCover:
                 scale_rand=uniform(0.1, 0.3),
                 selection=selection,
                 ground_offset=self.dimension * 0.2 * scale,
-                apply_geo=True,
-                realize=True,
+                apply_geo=apply_geo,
+                realize=realize,
             )
             scattered.parent = obj
 

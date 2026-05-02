@@ -1457,7 +1457,7 @@ class SofaFactory(AssetFactory):
     def create_asset(self, i, placeholder, face_size, **_):
         hipoly = butil.copy(placeholder, keep_materials=True)
 
-        butil.modify_mesh(hipoly, "SUBSURF", levels=1, apply=True)
+        butil.modify_mesh(hipoly, "SUBSURF", levels=1, apply=False)
 
         with butil.SelectObjects(hipoly):
             bpy.ops.object.shade_smooth()

@@ -90,6 +90,7 @@ Keep this skill generic. Do not store project-specific dates, file paths, progre
 - If generated geometry drifts from intended size, normalize against the placeholder bbox instead of silently scaling scene instances by hand.
 - Preserve materials, tagging, and support-surface hooks so downstream systems still behave correctly.
 - Use single-asset generation for isolated validation, not as the default insertion path for an already-open reconstruction scene.
+- For normal Blender scene review, prefer asset output that preserves live modifiers or instances when the evaluated result remains usable. Use isolated saved `.blend` outputs for batch smoke tests, regression handoff, or cases where the active Blender process cannot import the factory cleanly.
 
 ## Object Quality Standards
 
@@ -148,6 +149,8 @@ Keep this skill generic. Do not store project-specific dates, file paths, progre
 - Remember that the active Blender process may use a different Python executable than the repo's system-level validation command. Before importing Infinigen inside MCP, put the repo root before the validated third-party `site-packages` path.
 - Do not paper over missing dependencies by injecting no-op modules such as fake `gin` or `tqdm`. If that happened during debugging, remove those modules from `sys.modules`; if Infinigen was imported while they were present, also purge `infinigen` and `infinigen.*` before a clean import.
 - When the live Blender import state is suspect, use `references/blender-mcp-infinigen-runtime-reset.md` before retrying factory creation.
+- When the object is staying in the active Blender `.blend`, keep live modifier stacks and Geometry Nodes instances where safe instead of realizing everything into mesh data. Bake only when the reconstruction workflow needs mesh editing, export, simulation, stable-pose analysis, or joined geometry.
+- If retained Geometry Nodes instances depend on hidden source collections or prototype objects, keep those dependencies hidden and non-rendering but present. Do not delete source collections that a live modifier still references.
 - After direct factory creation, validate the generated object just like an appended asset: bbox, polycount, ground/support contact, collection membership, old-object archive state, neighboring subsystem gaps, active camera, and viewport screenshot.
 
 ## Environment Compatibility Pattern
@@ -179,7 +182,7 @@ Keep this skill generic. Do not store project-specific dates, file paths, progre
 
 ## Scene Organization And Cleanup Pattern
 
-- Keep live scene modules, archives, and study work in separate collection families. A practical layout is `REFERENCE_RECONSTRUCTION_CURRENT` for visible scene modules, `ARCHIVE_<Subsystem>Development` for hidden history, and `STUDY_<Subsystem>Development` for experiments, control meshes, and review-only construction tests.
+- Keep live scene modules, archives, and study work in separate collection families. A practical layout is `REFERENCE_RECONSTRUCTION_CURRENT` for visible scene modules, `ARCHIVE_<Subsystem>Development` for hidden history, and `STUDY_<Subsystem>Development` for experiments, control meshes, and Blender construction checks.
 - Every visible production object should belong to the intended subsystem collection only, unless the scene has a deliberate cross-cutting collection. Do not leave current objects in archive/study collections, and do not leave archived objects in live subsystem collections.
 - When an iteration is rejected, delete or archive that pass immediately. Remove rejected visible objects, temporary review objects, unused helper carriers, empty scratch collections, and intermediate versions that are not useful provenance.
 - If an old version is worth keeping, hide it, disable render, move it under a clearly named archive collection, and record the reason in scene provenance. If it is just a failed transient attempt, remove it and purge unused data-blocks when safe.
@@ -219,7 +222,7 @@ Keep this skill generic. Do not store project-specific dates, file paths, progre
 - Do not keep checkout-specific preset lists or scene progress notes in this skill.
 - Use `infinigen/docs/ReferenceReconstructionAssets.md` as the canonical repo-level catalog for reference-driven or locally modified Infinigen assets when that file exists. Do not create parallel repo-level catalogs such as `LocalReconstructionAssets.md` unless the user explicitly asks for a new taxonomy.
 - Keep scene-specific provenance near the `.blend` or project folder, conventionally as `ASSET_PROVENANCE.md`. Use it for object prefixes, replacement reasons, archive collection names, and current collection layout. Keep code-level provenance with the Infinigen repo in the canonical catalog above.
-- Direct MCP creation in the active blend is the preferred reconstruction insertion path once the Blender process import environment is clean; single-asset `.blend` output remains useful for smoke tests and isolated validation.
+- Direct Blender factory creation via MCP in the active blend is the preferred reconstruction insertion path once the Blender process import environment is clean; standalone asset `.blend` output remains useful for smoke tests, isolated validation, and durable artifacts.
 
 ## Skill Maintenance
 

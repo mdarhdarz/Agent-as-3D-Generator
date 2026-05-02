@@ -57,20 +57,33 @@ def validate_object_tree(asset):
             if slot.material is None:
                 raise ValueError(f"{asset.name}: {obj.name} has empty material slot")
 
-        for mod in obj.modifiers:
-            if mod.type in {"NODES", "SUBSURF"}:
-                raise ValueError(
-                    f"{asset.name}: {obj.name} has unapplied {mod.type} modifier {mod.name}"
-                )
-
         if obj.type != "MESH":
             continue
         if obj.data is None:
             raise ValueError(f"{asset.name}: {obj.name} has no mesh data")
         if len(obj.data.vertices) <= 2:
-            raise ValueError(
-                f"{asset.name}: {obj.name} has only {len(obj.data.vertices)} vertices"
-            )
+            evaluated_vertices = 0
+            evaluated_faces = 0
+            if obj.modifiers:
+                depsgraph = bpy.context.evaluated_depsgraph_get()
+                evaluated_obj = obj.evaluated_get(depsgraph)
+                evaluated_mesh = None
+                try:
+                    evaluated_mesh = evaluated_obj.to_mesh()
+                    evaluated_vertices = len(evaluated_mesh.vertices)
+                    evaluated_faces = len(evaluated_mesh.polygons)
+                finally:
+                    if evaluated_mesh is not None:
+                        evaluated_obj.to_mesh_clear()
+            keeps_geometry_nodes = any(mod.type == "NODES" for mod in obj.modifiers)
+            if (
+                evaluated_vertices <= 2
+                and evaluated_faces == 0
+                and not keeps_geometry_nodes
+            ):
+                raise ValueError(
+                    f"{asset.name}: {obj.name} has only {len(obj.data.vertices)} vertices"
+                )
         if tagging.COMBINED_ATTR_NAME in obj.data.attributes:
             attr = obj.data.attributes[tagging.COMBINED_ATTR_NAME]
             if attr.domain != "FACE":

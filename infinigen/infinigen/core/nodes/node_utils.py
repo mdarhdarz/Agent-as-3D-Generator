@@ -57,8 +57,19 @@ def to_nodegroup(name=None, singleton=False, type="GeometryNodeTree"):
     return registration_fn
 
 
+def _curve_point_value(value):
+    if isinstance(value, np.generic):
+        return value.item()
+    if isinstance(value, np.ndarray):
+        if value.size != 1:
+            raise ValueError(f"Expected scalar curve point value, got {value=}")
+        return value.reshape(-1)[0].item()
+    return value
+
+
 def assign_curve(c, points, handles=None):
     for i, p in enumerate(points):
+        p = tuple(_curve_point_value(v) for v in p)
         if i < 2:
             c.points[i].location = p
         else:

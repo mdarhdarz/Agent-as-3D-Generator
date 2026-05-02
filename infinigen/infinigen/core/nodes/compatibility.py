@@ -7,6 +7,8 @@
 import logging
 from collections import OrderedDict
 
+import bpy
+
 from .node_info import (
     NODECLASS_TO_DATATYPE,
     Nodes,
@@ -120,6 +122,56 @@ def compat_resample_curve(nw, orig_type, input_args, attrs, input_kwargs):
         if isinstance(mode, str) and "LENGTH" in mode.upper():
             target = "Length"
         input_kwargs.setdefault(target, input_args[2])
+
+    return nw.new_node(
+        node_type=orig_type,
+        input_args=[],
+        attrs=attrs,
+        input_kwargs=input_kwargs,
+        compat_mode=False,
+    )
+
+
+def _curve_radius_from_set_curve_radius(curve):
+    curve_socket = infer_output_socket(curve)
+    if curve_socket is None:
+        return None
+
+    curve_node = curve_socket.node
+    if curve_node.bl_idname != Nodes.SetCurveRadius:
+        return None
+
+    try:
+        radius_socket = curve_node.inputs["Radius"]
+    except KeyError:
+        return None
+
+    if radius_socket.is_linked:
+        return radius_socket.links[0].from_socket
+    return getattr(radius_socket, "default_value", None)
+
+
+def compat_curve_to_mesh(nw, orig_type, input_args, attrs, input_kwargs):
+    # Blender 5.x gives Curve to Mesh a separate Scale input. Legacy Infinigen
+    # nodegraphs often put the intended tube radius on Set Curve Radius, which
+    # no longer scales a custom profile curve by itself.
+    if len(input_args) > 0 and "Curve" not in input_kwargs:
+        input_kwargs["Curve"] = input_args[0]
+    if len(input_args) > 1 and "Profile Curve" not in input_kwargs:
+        input_kwargs["Profile Curve"] = input_args[1]
+    if len(input_args) > 2:
+        third = input_args[2]
+        if isinstance(third, bool) and "Fill Caps" not in input_kwargs:
+            input_kwargs["Fill Caps"] = third
+        elif "Scale" not in input_kwargs:
+            input_kwargs["Scale"] = third
+    if len(input_args) > 3 and "Fill Caps" not in input_kwargs:
+        input_kwargs["Fill Caps"] = input_args[3]
+
+    if "Scale" not in input_kwargs and bpy.app.version >= (5, 0, 0):
+        radius = _curve_radius_from_set_curve_radius(input_kwargs.get("Curve"))
+        if radius is not None:
+            input_kwargs["Scale"] = radius
 
     return nw.new_node(
         node_type=orig_type,
@@ -336,11 +388,64 @@ def compat_mesh_boolean(nw, orig_type, input_args, attrs, input_kwargs):
     )
 
 
+def _legacy_separate_rgb_group(tree_type):
+    name = f"Legacy Separate RGB ({tree_type})"
+    if name in bpy.data.node_groups:
+        return bpy.data.node_groups[name]
+
+    group = bpy.data.node_groups.new(name, tree_type)
+    group.interface.new_socket(
+        name="Image", in_out="INPUT", socket_type="NodeSocketColor"
+    )
+    for channel in ["R", "G", "B"]:
+        group.interface.new_socket(
+            name=channel, in_out="OUTPUT", socket_type="NodeSocketFloat"
+        )
+
+    group_input = group.nodes.new(Nodes.GroupInput)
+    separate_type = {
+        "GeometryNodeTree": "FunctionNodeSeparateColor",
+        "ShaderNodeTree": Nodes.SeparateColor,
+    }.get(tree_type, Nodes.SeparateColor)
+    separate = group.nodes.new(separate_type)
+    separate.mode = "RGB"
+    group_output = group.nodes.new(Nodes.GroupOutput)
+    group_output.is_active_output = True
+
+    group.links.new(group_input.outputs["Image"], separate.inputs["Color"])
+    group.links.new(separate.outputs["Red"], group_output.inputs["R"])
+    group.links.new(separate.outputs["Green"], group_output.inputs["G"])
+    group.links.new(separate.outputs["Blue"], group_output.inputs["B"])
+    return group
+
+
+def make_virtual_separate_rgb(nw, orig_type, input_args, attrs, input_kwargs):
+    if attrs is None:
+        attrs = {}
+    if attrs.get("mode") not in {None, "RGB"}:
+        raise ValueError(f"{orig_type} compatibility only supports RGB mode, got {attrs=}")
+
+    if len(input_args) > 0 and "Image" not in input_kwargs:
+        input_kwargs["Image"] = input_args[0]
+    if "Color" in input_kwargs and "Image" not in input_kwargs:
+        input_kwargs["Image"] = input_kwargs.pop("Color")
+
+    return nw.new_node(
+        node_type=_legacy_separate_rgb_group(nw.node_group.bl_idname).name,
+        input_args=[],
+        attrs={},
+        input_kwargs=input_kwargs,
+        compat_mode=False,
+    )
+
+
 COMPATIBILITY_MAPPINGS = {
     Nodes.MixRGB: make_virtual_mixrgb,
+    Nodes.SeparateRGB: make_virtual_separate_rgb,
     Nodes.TransferAttribute: make_virtual_transfer_attribute,
     Nodes.SampleCurve: compat_args_sample_curve,
     Nodes.ResampleCurve: compat_resample_curve,
+    Nodes.CurveToMesh: compat_curve_to_mesh,
     Nodes.MusgraveTexture: compat_musgrave_texture,
     Nodes.CaptureAttribute: compat_capture_attribute,
     Nodes.PrincipledBSDF: compat_principled_bsdf,

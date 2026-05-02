@@ -373,7 +373,7 @@ def shader_material(
     mapping = nw.new_node(
         Nodes.Mapping,
         input_kwargs={
-            "Vector": texture_coordinate.outputs["Object"],
+            "Vector": texture_coordinate.outputs["Generated"],
         },
     )
 
@@ -449,6 +449,7 @@ def shader_material(
     add_1 = nw.new_node(
         Nodes.VectorMath,
         input_kwargs={
+            0: mapping,
             1: scale_1.outputs["Vector"],
         },
     )
@@ -464,7 +465,7 @@ def shader_material(
     noise_texture_2 = nw.new_node(
         Nodes.NoiseTexture,
         input_kwargs={
-            "Scale": mapping,
+            "Vector": mapping,
             "Detail": 5.0000,
         },
     )

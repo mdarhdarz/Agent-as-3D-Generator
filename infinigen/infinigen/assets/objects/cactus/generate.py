@@ -48,7 +48,8 @@ class CactusFactory(AssetFactory):
             base_hue = uniform(0.2, 0.4)
             self.material = surface.shaderfunc_to_material(self.shader_cactus, base_hue)
 
-    def create_asset(self, face_size=0.01, realize=True, **params):
+    def create_asset(self, face_size=0.01, realize=False, min_face_size=0.03, **params):
+        face_size = max(face_size, min_face_size)
         obj = self.factory.create_asset(**params)
 
         remesh_with_attrs(obj, face_size)
@@ -74,7 +75,10 @@ class CactusFactory(AssetFactory):
             )
 
             tagging.tag_object(obj, "cactus_spike")
-            obj = join_objects([obj, t])
+            if realize:
+                obj = join_objects([obj, t])
+            else:
+                butil.parent_to(t, obj, no_inverse=True, no_transform=True)
 
         tagging.tag_object(obj, "cactus")
 

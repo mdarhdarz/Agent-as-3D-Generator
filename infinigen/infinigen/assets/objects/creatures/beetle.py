@@ -79,7 +79,10 @@ def beetle_genome():
 
     body = genome.part(fac)
 
-    body_length = fac.params["proportions"].sum() * fac.params["length"]
+    body_length = float(
+        np.asarray(fac.params["proportions"].sum() * fac.params["length"])
+        .reshape(-1)[0]
+    )
 
     leg_fac = parts.leg.InsectLeg()
     n_leg_pairs = int(np.clip(body_length * clip_gaussian(3, 2, 2, 6), 2, 15))

@@ -24,7 +24,7 @@ from infinigen.core.tagging import tag_object
 from infinigen.core.util import blender as butil
 
 
-def geo_leaf(nw: NodeWrangler, leaves):
+def geo_leaf(nw: NodeWrangler, leaves, realize=False):
     leaf_up_prob = uniform(0.0, 0.2)
     geometry = nw.new_node(
         Nodes.GroupInput, expose_input=[("NodeSocketGeometry", "Geometry", None)]
@@ -69,7 +69,8 @@ def geo_leaf(nw: NodeWrangler, leaves):
             "Scale": nw.uniform(0.6, 1.0),
         },
     )
-    instances = nw.new_node(Nodes.RealizeInstances, [instances])
+    if realize:
+        instances = nw.new_node(Nodes.RealizeInstances, [instances])
     geometry = nw.new_node(Nodes.JoinGeometry, [[geometry, instances]])
     nw.new_node(Nodes.GroupOutput, input_kwargs={"Geometry": geometry})
 
@@ -143,7 +144,9 @@ class Ivy:
         surface.add_geomod(scatter_obj, geo_radius, apply=True, input_args=[0.005, 12])
 
         assign_material(scatter_obj, shaderfunc_to_material(shader_simple_brown))
-        surface.add_geomod(scatter_obj, geo_leaf, apply=True, input_args=[self.col])
+        surface.add_geomod(
+            scatter_obj, geo_leaf, apply=False, input_args=[self.col, False]
+        )
 
         return scatter_obj
 

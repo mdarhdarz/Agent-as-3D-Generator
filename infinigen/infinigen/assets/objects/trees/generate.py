@@ -66,6 +66,7 @@ class GenericTreeFactory(AssetFactory):
         adapt_mesh_method="remesh",
         decimate_placeholder_levels=0,
         min_dist=None,
+        min_face_size=None,
         coarse=False,
     ):
         super(GenericTreeFactory, self).__init__(factory_seed, coarse=coarse)
@@ -82,6 +83,7 @@ class GenericTreeFactory(AssetFactory):
         self.coarse_mesh_placeholder = coarse_mesh_placeholder
 
         self.min_dist = min_dist
+        self.min_face_size = min_face_size
 
     def create_placeholder(self, i, loc, rot):
         logger.debug("generating tree skeleton")
@@ -139,6 +141,8 @@ class GenericTreeFactory(AssetFactory):
     def create_asset(
         self, placeholder, face_size, distance, **kwargs
     ) -> bpy.types.Object:
+        if self.min_face_size is not None:
+            face_size = max(face_size, self.min_face_size)
         skeleton_obj = placeholder.children[0]
 
         if not self.coarse_mesh_placeholder:
@@ -207,7 +211,8 @@ class GenericTreeFactory(AssetFactory):
             butil.parent_to(skeleton_obj, skin_obj, no_inverse=True)
 
         tag_object(skin_obj, "tree")
-        butil.apply_modifiers(skin_obj)
+        if self.realize:
+            butil.apply_modifiers(skin_obj)
 
         return skin_obj
 
@@ -365,15 +370,20 @@ def make_twig_collection(
         child_col = None
 
     twig_factory = GenericTreeFactory(
-        seed, twig_params, child_col, trunk_surface=trunk_surface, realize=True
+        seed,
+        twig_params,
+        child_col,
+        trunk_surface=trunk_surface,
+        realize=False,
+        min_face_size=0.03,
     )
     col = make_asset_collection(
         twig_factory, n_twig, verbose=False, distance=twig_valid_dist
     )
 
     if child_col is not None:
-        child_col.hide_viewport = False
-        butil.delete(list(child_col.objects))
+        child_col.hide_viewport = True
+        child_col.hide_render = True
     return col
 
 
@@ -508,6 +518,7 @@ class BushFactory(GenericTreeFactory):
     max_distance = 50
 
     def __init__(self, seed, coarse=False, **kwargs):
+        kwargs.setdefault("min_face_size", 0.03)
         with FixedSeed(seed):
             shrub_shape = np.random.randint(2)
             trunk_surface = weighted_sample(material_assignments.bark)

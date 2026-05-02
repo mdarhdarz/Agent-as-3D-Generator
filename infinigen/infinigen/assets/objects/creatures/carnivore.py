@@ -27,16 +27,16 @@ from infinigen.core.util.random import weighted_sample
 def tiger_hair_params():
     mat_roughness = U(0.4, 0.7)
 
-    length = clip_gaussian(0.022, 0.03, 0.01, 0.1)
+    length = clip_gaussian(0.012, 0.008, 0.006, 0.03)
     puff = U(0.14, 0.4)
 
     return {
-        "density": 500000,
-        "clump_n": np.random.randint(5, 70),
+        "density": 18000,
+        "clump_n": np.random.randint(60, 120),
         "avoid_features_dist": 0.01,
         "grooming": {
             "Length MinMaxScale": np.array(
-                (length, length * N(2, 0.5), U(15, 60)), dtype=np.float32
+                (length, length * N(1.5, 0.25), U(15, 60)), dtype=np.float32
             ),
             "Puff MinMaxScale": np.array(
                 (puff, puff * N(3, 0.5), U(15, 60)), dtype=np.float32
@@ -286,6 +286,8 @@ class CarnivoreFactory(AssetFactory):
             genome,
             rigging=dynamic,
             postprocess_func=self.apply_materials,
+            adaptive_resolution=False,
+            min_remesh_size=0.04,
             **kwargs,
         )
 
@@ -293,7 +295,12 @@ class CarnivoreFactory(AssetFactory):
 
         if self.hair:
             creature_hair.configure_hair(
-                joined, root, genome.postprocess_params["hair"], is_dynamic=dynamic
+                joined,
+                root,
+                genome.postprocess_params["hair"],
+                apply=False,
+                is_dynamic=dynamic,
+                preserve_particle_system=True,
             )
 
         if dynamic:
