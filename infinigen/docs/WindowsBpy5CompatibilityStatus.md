@@ -1,6 +1,6 @@
 # Windows + Blender 5 Compatibility Status
 
-Status snapshot: May 1, 2026.
+Status snapshot: May 4, 2026.
 
 This document is a practical handoff for running Infinigen locally on native Windows with Python 3.13, Blender Python (`bpy`) 5.1, NumPy 2.x, and native OpenCV. It records what currently works, what is still blocked, and where the latest smoke-test outputs live.
 
@@ -13,8 +13,10 @@ This document is a practical handoff for running Infinigen locally on native Win
 - Full terrain generation is still blocked on native terrain shared libraries on Windows.
 - Rendering the populated no-terrain nature scene is still blocked by memory pressure in Cycles / OPTIX.
 - The May 1 all-asset smoke baseline covered 301 curated assets and saved `.blend` files without rendering.
-- After follow-up fixes, the 4 original indoor mesh failures now pass isolated rechecks.
-- Large indoor assets now prefer Blender workflow defaults where safe: preserving Geometry Nodes, modifier stacks, or instances instead of baking them into large meshes.
+- The original indoor, nature, deprecated material, and scatter failures now pass targeted rechecks.
+- The May 4 full scatter rerun covered all 22 curated scatters: 22 pass, 0 fail.
+- Blender 5 `CurveToMesh` compatibility is handled through a shared compatibility path instead of per-asset node patches.
+- Large assets now prefer Blender workflow defaults where safe: preserving Geometry Nodes, modifier stacks, instances, or particle systems instead of baking dense geometry.
 - Direct Blender MCP insertion into the currently open `.blend` is the usual path for checking the updated Blender-oriented indoor assets when the Blender process import path is configured.
 
 ## Local Environment
@@ -204,10 +206,16 @@ Follow-up output root:
 
 Current interpretation:
 
-- The original indoor baseline failures have been repaired and rechecked individually.
-- A full 301-asset rerun has not yet been completed after the follow-up fixes.
-- Remaining known failures are concentrated in nature meshes, deprecated material compatibility, and scatters.
-- A later Blender workflow pass changed several large indoor asset defaults to avoid unnecessary baking for normal Blender use. These changes have not yet been covered by a full 301-asset rerun.
+- The original baseline failures have been repaired in targeted rechecks, but a full 301-asset rerun has not yet been completed after all follow-up fixes.
+- The May 2 nature visual checks covered clouds, `BeetleFactory`, `CarnivoreFactory`, `FishFactory`, birds, and fruits. The obvious Blender 5 node-interface shape regressions are no longer present in the checked default seed.
+- Follow-up outputs live under `outputs/system_smoke/nature_fixups_recheck_20260502`.
+
+Scatter status:
+
+- May 1 full baseline failures: `Fern`, `GroundTwigs`, `Ivy`, `Snowlayer`.
+- May 2 targeted scatter recheck: all 4 pass in `outputs/system_smoke/nature_fixups_recheck_20260502/codex_continue_20260502`.
+- May 4 full scatter rerun: 22 pass, 0 fail in `outputs/system_smoke/scatters_full_recheck_20260504`.
+- Largest May 4 scatter `.blend` files: `Urchin` 135.93 MB, `Seaweed` 119.25 MB, `Mollusk` 71.15 MB, `Seashells` 71.15 MB, `Pinecone` 70.67 MB, `Jellyfish` 63.75 MB, `DecorativePlants` 59.91 MB.
 
 ## Large Blend Notes
 
@@ -258,6 +266,7 @@ The compatibility work so far has focused on Blender 5 / NumPy 2 behavior:
 - Add fallback handling for edge-loop selection operators across Blender versions.
 - Force Geometry Nodes `Mesh Boolean` to use `EXACT` solver when legacy options are requested.
 - Make node input lookup tolerant of disabled-but-present sockets.
+- Route `CurveToMesh` through shared Blender 5 compatibility that auto-connects `SetCurveRadius.Radius` to `CurveToMesh.Scale` when older node code omits that input.
 - Replace removed legacy HSV shader node usage with Blender 5-compatible color nodes where patched.
 - Allow no-terrain camera preprocessing to accept a single Blender object as `scene_objs`.
 - Add targeted fallbacks for a few asset-specific smoke failures found during indoor validation.
@@ -274,6 +283,17 @@ Representative files touched during compatibility work include:
 - `infinigen/assets/objects/lamp/ceiling_classic_lamp.py`
 - `infinigen/assets/objects/seating/bedframe.py`
 - `infinigen/assets/objects/table_decorations/sink.py`
+
+## Blender Workflow Nature Defaults
+
+For large procedural nature assets that stay in Blender, the current local preference is the same as for indoor assets: preserve live systems where the evaluated result remains correct instead of baking every strand or node result into mesh data.
+
+Updated nature defaults:
+
+| Asset | Current Blender Behavior | Validation |
+| --- | --- | --- |
+| `CarnivoreFactory` | keeps fur as a particle system by default and maps the older grooming intent onto particle length, clumping, roughness, radius, and child settings instead of converting the result into dense realized geometry | targeted visual recheck on May 2, 2026: pass; later particle-hair intent recheck: pass at about 1.75 MB |
+| `BeetleFactory` and other profile-curve creature parts | rely on the shared `CurveToMesh` compatibility path rather than per-asset local patches to recreate the intended profile scaling on Blender 5 | targeted node-interface recheck on May 2, 2026: pass |
 
 ## Recommended Next Steps
 
