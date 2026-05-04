@@ -18,6 +18,7 @@ coverage.xml
 .vscode
 */wandb
 .vscode
+.mplconfig/
 
 slurm-*.out
 __pycache__
