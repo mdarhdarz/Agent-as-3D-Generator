@@ -144,3 +144,45 @@ Added four-limb IK controls after `Control Rig v01`.
   - Max bbox size delta across key frames: `0.03180134296417236`
 
 Use the IK target bones for placing hands/feet, pole bones for elbow/knee direction, and `CTRL-hand.*` / `CTRL-foot.*` for local hand/foot rotation.
+
+
+## 2026-05-11 - Limb IK v01 closeout
+- Active animation set to `node_0_fat_cat_jump_down_CTRL_IK_v01` on frames 1-88.
+- Armature display kept as OCTAHEDRAL with `show_in_front=True`.
+- Armature object viewport visibility restored so the control bones are visible immediately after opening the file.
+- Visible animator controls include IK hand/foot targets, pole targets, torso/head/ear/leaf controls, and hand/foot local rotation controls.
+- Hidden solver/detail bones: original `root`, all `DEF-*`, and FK upper-arm/forearm/thigh/shin controls used internally by the IK chains.
+- FK-preserved action remains `node_0_fat_cat_jump_down_CTRL_v01`; original direct deform-bone action remains `node_0_fat_cat_jump_down_test_v08_relaxed_leaves_ear_sway`.
+
+
+## 2026-05-11 - Control usability v01
+- Added finer bone collections for animation use:
+  - `ANIM_main_body`
+  - `ANIM_ik_targets`
+  - `ANIM_pole_targets`
+  - `ANIM_hand_foot_orientation`
+  - `ANIM_secondary_ears_leaves`
+  - `HIDDEN_fk_solver_limbs`
+  - `HIDDEN_deform_driven`
+- Added custom pose bone colors by control role: main body, IK targets, pole targets, hand/foot orientation, secondary ears/leaves, hidden FK solver bones, and hidden deform bones.
+- Locked non-useful transform channels:
+  - `CTRL-root` and `CTRL-pelvis`: location and rotation open; scale locked.
+  - torso/head/ear/leaf and hand/foot orientation controls: rotation open; location and scale locked.
+  - IK targets and pole targets: location open; rotation and scale locked.
+  - hidden deform-driven bones: location, rotation, and scale locked; selection protected.
+- Mesh viewport X-Ray remains off; armature stays visible with `show_in_front=True`.
+
+
+## 2026-05-11 - Post-deform smoothing v01
+- Added `Post_Deform_Corrective_Smooth_v01` after the `Armature` modifier on `node_0.001`.
+- Purpose: smooth the already-deformed surface without changing any vertex group weights.
+- Settings: `factor=0.38`, `iterations=12`, `scale=1.0`, `rest_source=ORCO`, `use_pin_boundary=True`.
+- Mesh faces were set to smooth shading for normal continuity; topology and weights were not changed.
+
+
+## 2026-05-11 - Post-deform normal cleanup v01
+- Added `Post_Deform_Weighted_Normal_v01` after `Post_Deform_Corrective_Smooth_v01` on `node_0.001`.
+- Purpose: reduce dark shading caused by stretched tiny faces and unstable/deformed normal interpolation without changing topology or vertex weights.
+- Settings: `mode=FACE_AREA_WITH_ANGLE`, `weight=50`, `thresh=0.01`, `keep_sharp=True`.
+- This is a shading-normal fix. If a region still turns black because faces truly fold or invert in a pose, the remaining fix is local deformation correction or a corrective shape key.
+- Final scene file for this pass: `fatcat.blend`.
