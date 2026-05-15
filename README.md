@@ -4,6 +4,11 @@ This repository is an agent-oriented procedural modeling workspace built around 
 
 It is not primarily a command launcher for Infinigen. Humans can still run Infinigen commands for validation, but the main value of this repository is the code, documentation, and examples that let an agent reason about `AssetFactory`, `bpy`, Geometry Nodes, materials, scatters, modifiers, instances, and Blender compatibility work.
 
+## Demo
+
+[![Demo](./assets/thumbnail.png)](./assets/demo.mp4)
+
+
 ## What This Repository Provides
 
 - A full Infinigen source tree for procedural asset and scene-generation context.
@@ -14,13 +19,13 @@ It is not primarily a command launcher for Infinigen. Humans can still run Infin
 
 ## Repository Layout
 
-| Path | Purpose |
-| --- | --- |
-| `infinigen/` | Main Infinigen source tree used as the procedural modeling codebase. |
-| `infinigen/docs/WindowsBpy5CompatibilityStatus.md` | Local status record for Blender 5 / Python 3.13 / NumPy 2 compatibility work. |
-| `infinigen/docs/ReferenceReconstructionAssets.md` | Catalog of reusable local reconstruction assets and their provenance. |
-| `reference_reconstruction/` | An example `.blend` created from a single reference image through multi-turn dialogue with an agent, plus renders and provenance notes. |
-| `skill_sources/` | Agent workflow definitions for Infinigen asset authoring and reference reconstruction. |
+| Path | Purpose                                                                                                                                          |
+| --- |--------------------------------------------------------------------------------------------------------------------------------------------------|
+| `reference_reconstruction/` | Two examples through multi-turn dialogue with Codex. <br/> Video demo: [Example1](https://www.bilibili.com/video/BV1Jg96BjEtZ), [Example2](./assets/demo.mp4) |
+| `infinigen/` | Main Infinigen source tree used as the procedural modeling codebase.                                                                             |
+| `infinigen/docs/WindowsBpy5CompatibilityStatus.md` | Local status record for Blender 5 / Python 3.13 / NumPy 2 compatibility work.                                                                    |
+| `infinigen/docs/ReferenceReconstructionAssets.md` | Catalog of reusable local reconstruction assets and their provenance.                                                                            |
+| `skill_sources/` | Agent workflow definitions for Infinigen asset authoring and reference reconstruction.                                                           |
 
 ## Working Approach
 
