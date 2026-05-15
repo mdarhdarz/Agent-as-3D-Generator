@@ -6,7 +6,9 @@ It is not primarily a command launcher for Infinigen. Humans can still run Infin
 
 ## Demo
 
-[![Demo](./assets/thumbnail.png)](./assets/demo.mp4)
+[![Demo animation](./assets/demo.gif)](./assets/demo.mp4)
+
+Click the preview to open the MP4 version.
 
 
 ## What This Repository Provides
